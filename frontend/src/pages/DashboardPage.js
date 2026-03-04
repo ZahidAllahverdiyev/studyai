@@ -35,15 +35,29 @@ export default function DashboardPage() {
     return 'var(--red)';
   };
 
+ const getBakuGreeting = () => {
+  const now = new Date();
+  const bakuHour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Baku",
+      hour: "2-digit",
+      hour12: false,
+    }).format(now)
+  );
+
+  if (bakuHour >= 5 && bakuHour < 12) return "Good Morning";
+  if (bakuHour >= 12 && bakuHour < 18) return "Good Afternoon";
+  return "Good Evening";
+};
+
   return (
     <div>
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">
-            Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'},{' '}
-            {user?.name?.split(' ')[0]} 👋
-          </h1>
+         <h1 className="page-title">
+  {getBakuGreeting()}, {user?.name?.split(" ")[0]} 👋
+</h1>
           <p className="page-subtitle">Here's your learning progress at a glance.</p>
         </div>
         <Link to="/upload" className="btn btn-primary">
@@ -120,7 +134,7 @@ export default function DashboardPage() {
       )}
 
       {/* Recent Files & Quizzes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
         {/* Recent Files */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
@@ -128,7 +142,7 @@ export default function DashboardPage() {
             <Link to="/upload" className="btn btn-sm btn-secondary">View All</Link>
           </div>
           {data?.recentFiles?.length > 0 ? (
-            data.recentFiles.map(file => (
+            data.recentFiles.slice(0,3).map(file => (
               <div key={file.id} className="file-item mb-2">
                 <div className={`file-icon ${file.type}`}>
                   {file.type === 'pdf' ? '📕' : '📘'}
@@ -161,7 +175,7 @@ export default function DashboardPage() {
             <h3 style={{ fontFamily: 'Playfair Display' }}>Recent Quizzes</h3>
           </div>
           {data?.recentQuizzes?.length > 0 ? (
-            data.recentQuizzes.map(quiz => (
+            data.recentQuizzes.slice(0,3).map(quiz => (
               <div key={quiz.id} className="file-item mb-2">
                 <div className="file-icon" style={{ background: 'rgba(166, 227, 161, 0.15)' }}>
                   📝

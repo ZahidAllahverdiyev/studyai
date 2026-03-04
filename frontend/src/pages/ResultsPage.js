@@ -35,7 +35,7 @@ export default function ResultsPage() {
   const formatTime = (s) => s > 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div style={{ maxWidth: 760, margin: '0 auto'}}>
       <div className="page-header">
         <div>
           <h1 className="page-title">Quiz Results</h1>

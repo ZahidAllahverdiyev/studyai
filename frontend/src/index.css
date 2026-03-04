@@ -773,13 +773,81 @@ input::placeholder { color: var(--muted); }
 .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
 .empty-title { font-size: 20px; font-family: 'Playfair Display', serif; color: var(--text); margin-bottom: 8px; }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* ── Mobile Header ─────────────────────────────────────────── */
+.mobile-header {
+  display: none;
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.hamburger-btn:hover { background: var(--surface2); }
+
+.mobile-overlay {
+  display: none;
+}
+
+.desktop-only { display: flex; }
+
 @media (max-width: 768px) {
-  .sidebar { width: 100%; height: auto; position: relative; }
-  .main-content { margin-left: 0; padding: 20px 16px; }
-  .app-layout { flex-direction: column; }
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 8px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    height: 68px;
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+  }
+
+  .desktop-only { display: none !important; }
+
+  .sidebar {
+  position: fixed;
+  top: 68px;                 /* mobile header hündürlüyü qədər aşağı */
+  left: -280px;
+  width: 260px;
+  height: calc(100dvh - 68px);
+  z-index: 180;
+  transition: left 0.3s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  overscroll-behavior: contain;
+}
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 88px 16px 24px;
+  }
+
   .auth-card { padding: 32px 24px; }
   .page-header { flex-direction: column; }
+  .card-grid { grid-template-columns: 1fr !important; }
+  .quiz-container { max-width: 100%; }
 }
 
 /* ── Utility Classes ────────────────────────────────────────── */
@@ -801,3 +869,25 @@ input::placeholder { color: var(--muted); }
 .text-muted { color: var(--subtext); }
 .font-mono { font-family: 'DM Mono', monospace; }
 .w-full { width: 100%; }
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 34px;
+    line-height: 1.08;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+  }
+}
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 30px;
+    line-height: 1.05;
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+}

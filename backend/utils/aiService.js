@@ -1,30 +1,68 @@
-const Groq = require('groq-sdk');
+// ============================================================
+// backend/utils/aiService.js - Groq AI + Text extraction helpers
+// ============================================================
+
+const Groq = require("groq-sdk");
+const fs = require("fs");
+const path = require("path");
+
+// Text extraction deps
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+/** Limit very long text so model doesn't choke */
 function trimText(text, maxChars = 15000) {
-  if (text.length <= maxChars) return text;
-  return text.substring(0, maxChars) + '\n\n[... text truncated ...]';
+  if (!text) return "";
+  const t = String(text);
+  if (t.length <= maxChars) return t;
+  return t.slice(0, maxChars) + "\n\n[... text truncated ...]";
 }
 
+/** Remove markdown fences and parse JSON safely */
 function parseJSON(raw) {
-  const cleaned = raw
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
+  const cleaned = String(raw || "")
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
     .trim();
+
   return JSON.parse(cleaned);
 }
 
+/** Extract raw text from uploaded PDF/DOCX file path */
+async function extractTextFromFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error("File not found on disk.");
+  }
+
+  if (ext === ".pdf") {
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdfParse(dataBuffer);
+    return (data.text || "").trim();
+  }
+
+  if (ext === ".docx") {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return (result.value || "").trim();
+  }
+
+  throw new Error("Unsupported file type. Only PDF and DOCX are supported.");
+}
+
+/** AI: Create study summary + 5 questions */
 async function analyzeLecture(text) {
   const trimmed = trimText(text);
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: "llama-3.3-70b-versatile",
     messages: [
       {
-        role: 'user',
-        content: `You are an expert academic text editor and educator. Your job is to take raw university lecture text and transform it into a clean, well-structured, easy-to-read study material.
+        role: "user",
+        content: `You are an expert academic text editor and educator. Your job is to take raw university lecture text and transform it into clean, well-structured, easy-to-read study material.
 
 LANGUAGE RULE:
 Detect the language of the lecture text and write your ENTIRE response in that SAME language. Never mix languages.
@@ -33,73 +71,55 @@ STRICT CONTENT RULE:
 Use ONLY information from the lecture text. Never add outside knowledge. Never invent examples or facts.
 
 CRITICAL STARTING RULE:
-NEVER begin the summary with introduction phrases like "This lecture covers...", "Information is given about...", "Bu mühazirədə...", "Bu mövzuda...", or any sentence that describes what the lecture is about. Start DIRECTLY with the first real concept.
+NEVER begin the summary with introduction phrases like "This lecture covers...", "Information is given about...", "Bu mühazirədə...", "Bu mövzuda...".
+Start DIRECTLY with the first real concept.
 
-SUMMARY TASK - HOW TO TRANSFORM THE TEXT:
-
-STEP 1 - UNDERSTAND:
-Read the entire lecture carefully. Identify all main topics, subtopics, definitions, principles, components, and classifications.
-
-STEP 2 - CLEAN:
-Remove filler sentences, unnecessary repetition, and redundant phrases. Keep every important fact, definition, term, and concept.
-
-STEP 3 - RESTRUCTURE:
-Organize the content logically. Group related ideas together. Each main topic gets its own paragraph.
-
-STEP 4 - FORMAT PROPERLY:
-This is very important for readability:
-- When the text has a LIST of items (principles, components, types, steps, features etc.) — ALWAYS write them as a numbered list (1. 2. 3.) or with dashes (- item), NEVER as a long comma-separated sentence
-- Each paragraph should start with the topic it covers
-- Use short, clear sentences
-- Keep technical terms but explain them simply
-
-STEP 5 - FINAL CHECK:
-The transformed text must be:
-- More readable than the original
-- Well organized with clear paragraphs and lists
-- Complete — no important information missing
-- NOT too short — the summary must cover ALL topics from the lecture
-- If the original text is long, your summary should also be detailed and long
-- Never sacrifice completeness for brevity
-- Written in academic but simple language
+SUMMARY TASK:
+- Remove filler sentences and repetition.
+- Keep all important facts/definitions.
+- Use short clear sentences.
+- When there is a list (components, types, steps, features) format it as bullets or numbered lists.
+- If original text is long, your output must also be detailed (not 20 sentences).
 
 STUDY QUESTIONS TASK:
-Write exactly 5 open-ended questions based only on the lecture content. Questions must make students think deeply. Every question must be answerable from the lecture text only.
+Write exactly 5 open-ended questions based ONLY on lecture content.
 
-OUTPUT: Respond ONLY with valid JSON. Nothing before or after. No markdown.
-{
-  "summary": "Your transformed lecture text here with proper paragraphs and numbered lists where needed...",
-  "studyQuestions": ["Question 1?", "Question 2?", "Question 3?", "Question 4?", "Question 5?"]
-}
+OUTPUT RULES:
+Return ONLY valid JSON. No markdown, no code fences, no extra text.
+JSON must have exactly 2 keys: "summary" and "studyQuestions".
+"summary" is a plain string.
+"studyQuestions" is an array of exactly 5 strings.
 
 LECTURE TEXT:
-${trimmed}`
-      }
+${trimmed}`,
+      },
     ],
-    temperature: 0.5,
+    temperature: 0.4,
     max_tokens: 6000,
   });
 
-  const raw = response.choices[0].message.content.trim();
+  const raw = response.choices?.[0]?.message?.content?.trim() || "";
 
   try {
     return parseJSON(raw);
   } catch {
+    // Fallback so frontend doesn't crash
     return {
       summary: raw,
-      studyQuestions: ['Could not parse study questions. Please try again.'],
+      studyQuestions: ["Could not parse study questions. Please try again."],
     };
   }
 }
 
+/** AI: Generate 12 MCQ quiz questions */
 async function generateQuiz(text) {
   const trimmed = trimText(text);
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: "llama-3.3-70b-versatile",
     messages: [
       {
-        role: 'user',
+        role: "user",
         content: `You are an expert educator creating a university-level quiz.
 
 LANGUAGE RULE:
@@ -109,37 +129,28 @@ STRICT CONTENT RULE:
 Use ONLY information explicitly written in the lecture text. Never add outside knowledge.
 
 QUESTION CONSTRUCTION RULES:
-Each question MUST have exactly 1 correct answer. This is non-negotiable.
+Each question MUST have exactly 1 correct answer.
 
-To guarantee 1 correct answer, you MUST use these question types ONLY:
-1. Definition: "What does X mean?" / "X nədir?"
-2. NOT/EXCEPT: "Which of the following is NOT X?" / "Hansı X deyildir?"
-3. Purpose/Function: "What is the purpose of X?" / "X-in məqsədi nədir?"
-4. Identification: "Which of the following is an example of X?"
-5. Comparison: "What is the main difference between X and Y?"
-6. Consequence: "What happens when X occurs?"
-7. Correct statement: "Which statement about X is TRUE/FALSE?"
+Allowed question types only:
+1. Definition
+2. NOT/EXCEPT
+3. Purpose/Function
+4. Identification
+5. Comparison
+6. Consequence
+7. True/False statement
 
-STRICTLY FORBIDDEN question types (these always create multiple correct answers):
-- "What are the components/features/types of X?" → NEVER use
-- "What should be considered when doing X?" → NEVER use  
-- "What are the characteristics of X?" → NEVER use
-- "Which of the following are correct?" → NEVER use
+Forbidden question types:
+- "What are the components/features/types of X?"
+- "Which of the following are correct?"
+- any question that could have multiple correct answers.
 
-STRICTLY FORBIDDEN answer options (in any language):
-- "All of the above" / "Bütün variantlar" / "Hamısı"
-- "None of the above" / "Heç biri"
-- "Both A and B" / "A və B ikisi də"
-- Any option that combines other options
-
-OPTION QUALITY RULES:
-- All 4 options must look plausible — no obviously silly/wrong options
-- Each option must be a single, independent, specific answer
-- Options should be similar in length and style
+Forbidden answer options:
+- All of the above / None of the above / Both A and B / combined options
 
 Generate exactly 12 questions covering different parts of the lecture.
 
-OUTPUT: Respond ONLY with valid JSON. Nothing before or after. No markdown.
+OUTPUT: Respond ONLY with valid JSON. Nothing before/after.
 {
   "questions": [
     {
@@ -153,20 +164,53 @@ OUTPUT: Respond ONLY with valid JSON. Nothing before or after. No markdown.
 }
 
 LECTURE TEXT:
-${trimmed}`
-      }
+${trimmed}`,
+      },
     ],
     temperature: 0.3,
     max_tokens: 3000,
   });
 
-  const raw = response.choices[0].message.content.trim();
+  const raw = response.choices?.[0]?.message?.content?.trim() || "";
 
   try {
     return parseJSON(raw);
-  } catch {
-    throw new Error('Failed to parse quiz from AI. Please try again.');
+  } catch (e) {
+    throw new Error("Failed to parse quiz from AI. Please try again.");
   }
 }
 
-module.exports = { analyzeLecture, generateQuiz };
+/** AI: Chat tutor that MUST use lecture context only */
+async function chatWithLecture(context, userMessage) {
+  const ctx = trimText(context, 15000);
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a helpful tutor. Answer ONLY using the provided lecture context. If the answer is not in the lecture, say you cannot find it in the lecture.",
+      },
+      {
+        role: "user",
+        content: `LECTURE CONTEXT:
+${ctx}
+
+QUESTION:
+${userMessage}`,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 900,
+  });
+
+  return response.choices?.[0]?.message?.content?.trim() || "";
+}
+
+module.exports = {
+  extractTextFromFile,
+  analyzeLecture,
+  generateQuiz,
+  chatWithLecture,
+};

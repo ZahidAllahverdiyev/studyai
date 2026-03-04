@@ -190,9 +190,7 @@ export default function ProfilePage() {
             <button className="btn btn-secondary" onClick={() => navigate("/settings")}>
               Edit profile
             </button>
-            <button className="btn btn-secondary" onClick={() => navigate("/upload")}>
-              Manage files
-            </button>
+
           </div>
         </div>
 

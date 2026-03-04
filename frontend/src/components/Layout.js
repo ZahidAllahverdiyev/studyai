@@ -1,8 +1,4 @@
-// ============================================================
-// src/components/Layout.js - App shell with sidebar navigation
-// ============================================================
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +15,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -32,9 +29,26 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
+
+      {/* ── Mobile Header ── */}
+      <header className="mobile-header">
+  <div className="sidebar-logo" style={{ marginTop: 42 }}>
+          <div className="sidebar-logo-icon">⚡</div>
+          <span className="sidebar-logo-text">StudyAI</span>
+        </div>
+        <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </header>
+
+      {/* ── Mobile Overlay ── */}
+      {menuOpen && (
+        <div className="mobile-overlay" onClick={() => setMenuOpen(false)} />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
+      <aside className={`sidebar ${menuOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-logo desktop-only">
           <div className="sidebar-logo-icon">⚡</div>
           <span className="sidebar-logo-text">StudyAI</span>
         </div>
@@ -45,6 +59,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              onClick={() => setMenuOpen(false)}
             >
               <span className="nav-icon">{item.icon}</span>
               {item.label}
@@ -56,7 +71,6 @@ export default function Layout() {
           <button
             className="btn btn-secondary w-full mb-4"
             onClick={toggleTheme}
-            title="Toggle theme"
           >
             {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
           </button>
@@ -75,7 +89,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="main-content">
+      <main className="main-content" onClick={() => setMenuOpen(false)}>
         <Outlet />
       </main>
     </div>

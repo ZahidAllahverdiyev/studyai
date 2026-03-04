@@ -17,6 +17,10 @@ export default function SettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // Hard Reset (learning data)
+  const [resetText, setResetText] = useState("");
+  const [resetting, setResetting] = useState(false);
+
   useEffect(() => {
     setName(user?.name || "");
     setEmail(user?.email || "");
@@ -28,11 +32,7 @@ export default function SettingsPage() {
 
     setSavingProfile(true);
     try {
-      // ✅ Bu endpoint-i backend-də yaradacağıq (aşağıda)
       await api.put("/auth/profile", { name });
-
-      // Əgər AuthContext user-i auto yeniləmirsə, yenə də UI-dakı name dəyişəcək.
-      // İstəsən sonra AuthContext-ə "refreshMe()" əlavə edib tam sinxron edərik.
       toast.success("Profile updated.");
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to update profile.");
@@ -56,7 +56,6 @@ export default function SettingsPage() {
 
     setSavingPassword(true);
     try {
-      // ✅ Bu endpoint-i backend-də yaradacağıq (aşağıda)
       await api.put("/auth/password", {
         currentPassword,
         newPassword,
@@ -70,6 +69,30 @@ export default function SettingsPage() {
       toast.error(err.response?.data?.error || "Failed to change password.");
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const handleHardReset = async () => {
+    if (resetText.trim().toUpperCase() !== "RESET") {
+      toast.error('Type "RESET" to confirm.');
+      return;
+    }
+
+    const confirmReset = window.confirm(
+      "This will permanently delete your uploaded lectures, quizzes, attempts, and dashboard stats. Your profile will stay. Continue?"
+    );
+    if (!confirmReset) return;
+
+    setResetting(true);
+    try {
+      await api.delete("/user/reset");
+      toast.success("Learning data reset successfully.");
+      setResetText("");
+      window.location.reload();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Reset failed.");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -104,7 +127,11 @@ export default function SettingsPage() {
               <input value={email} disabled />
             </div>
 
-            <button className="btn btn-primary" type="submit" disabled={savingProfile}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={savingProfile}
+            >
               {savingProfile ? "Saving..." : "Save changes"}
             </button>
           </form>
@@ -147,10 +174,47 @@ export default function SettingsPage() {
               />
             </div>
 
-            <button className="btn btn-primary" type="submit" disabled={savingPassword}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={savingPassword}
+            >
               {savingPassword ? "Updating..." : "Update password"}
             </button>
           </form>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="card" style={{ border: "1px solid rgba(255,0,0,0.25)" }}>
+          <h3 style={{ fontFamily: "Playfair Display", marginBottom: 8 }}>
+            Danger Zone
+          </h3>
+
+          <p style={{ opacity: 0.85, marginBottom: 12 }}>
+            This will permanently delete your uploaded lectures, quizzes, attempts,
+            and dashboard stats. Your profile (name, email, avatar) will stay.
+          </p>
+
+          <div className="form-group">
+            <label>Type RESET to confirm</label>
+            <input
+              value={resetText}
+              onChange={(e) => setResetText(e.target.value)}
+              placeholder='Type "RESET" here'
+            />
+          </div>
+
+          <button
+            className="btn"
+            onClick={handleHardReset}
+            disabled={resetting}
+            style={{
+              background: "rgba(255,0,0,0.15)",
+              border: "1px solid rgba(255,0,0,0.35)",
+            }}
+          >
+            {resetting ? "Resetting..." : "Reset learning data"}
+          </button>
         </div>
       </div>
     </div>
