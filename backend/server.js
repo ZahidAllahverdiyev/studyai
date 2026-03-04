@@ -20,12 +20,12 @@ const mongoose = require('mongoose');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
-const authRoutes = require('./routes/auth');
-const fileRoutes = require('./routes/files');
-const aiRoutes = require('./routes/ai');
-const quizRoutes = require('./routes/quiz');
-const dashboardRoutes = require('./routes/dashboard');
-const userRoutes = require('./routes/user');
+//const authRoutes = require('./routes/auth');
+//const fileRoutes = require('./routes/files');
+//const aiRoutes = require('./routes/ai');
+//const quizRoutes = require('./routes/quiz');
+//const dashboardRoutes = require('./routes/dashboard');
+//const userRoutes = require('./routes/user');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,12 +55,12 @@ app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avat
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── API Routes ───────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/files', fileRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/quiz', quizRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/user', userRoutes);
+//app.use('/api/auth', authRoutes);
+//app.use('/api/files', fileRoutes);
+//app.use('/api/ai', aiRoutes);
+//app.use('/api/quiz', quizRoutes);
+//app.use('/api/dashboard', dashboardRoutes);
+//app.use('/api/user', userRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
