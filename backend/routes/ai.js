@@ -146,9 +146,6 @@ router.post("/analyze/:fileId", async (req, res) => {
       });
     }
 
-    if (file.aiAnalysis.summary && file.aiAnalysis.processedAt) {
-      return res.json({ message: "Analysis loaded from cache.", analysis: file.aiAnalysis });
-    }
 
     file.status = "processing";
     await file.save();
