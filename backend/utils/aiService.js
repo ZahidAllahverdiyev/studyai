@@ -75,11 +75,13 @@ NEVER begin the summary with introduction phrases like "This lecture covers...",
 Start DIRECTLY with the first real concept.
 
 SUMMARY TASK:
-- Remove filler sentences and repetition.
-- Keep all important facts/definitions.
-- Use short clear sentences.
+- Simplify complex and heavy academic sentences into clear, easy-to-read language.
+- Keep ALL important facts, definitions, and concepts — do not remove content.
+- Remove only repeated information and unnecessary filler words.
+- Preserve the full length and detail of the original — a long lecture must produce a long summary.
+- Use short, simple sentences that a first-year student can easily understand.
 - When there is a list (components, types, steps, features) format it as bullets or numbered lists.
-- If original text is long, your output must also be detailed (not 20 sentences).
+- Do NOT shorten the content — your goal is clarity, not brevity.
 
 STUDY QUESTIONS TASK:
 Write exactly 5 open-ended questions based ONLY on lecture content.
