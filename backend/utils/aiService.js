@@ -91,9 +91,8 @@ Write exactly 5 open-ended questions based ONLY on lecture content.
 
 OUTPUT RULES:
 Return ONLY valid JSON. No markdown, no code fences, no extra text.
-JSON must have exactly 2 keys: "summary" and "studyQuestions".
-"summary" is a plain string.
-"studyQuestions" is an array of exactly 5 strings.
+CRITICAL: Your entire response must start with { and end with }. 
+Do NOT use backtick-json or backticks anywhere. RAW JSON ONLY.
 
 LECTURE TEXT:
 ${trimmed}`,
