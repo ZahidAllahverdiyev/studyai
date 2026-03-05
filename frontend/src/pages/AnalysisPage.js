@@ -34,27 +34,35 @@ const [chatting, setChatting] = useState(false);
     }
 
     // 2) summary içində JSON string ola bilər
-    if (a?.summary && typeof a.summary === "string") {
-      const s = a.summary.trim();
-      if (s.startsWith("{")) {
-        try {
-          const parsed = JSON.parse(s);
-          if (parsed.summary) a = { ...a, ...parsed };
-        } catch {}
-      }
-    }
+if (a?.summary && typeof a.summary === "string") {
+  const s = a.summary
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  if (s.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(s);
+      if (parsed.summary) a = { ...a, ...parsed };
+    } catch {}
+  }
+}
 
-    // 3) studyQuestions yoxdursa amma summary içindədirsə
-    if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
-      const s = a.summary.trim();
-      if (s.startsWith("{")) {
-        try {
-          const parsed = JSON.parse(s);
-          if (parsed.studyQuestions) a.studyQuestions = parsed.studyQuestions;
-          if (parsed.summary) a.summary = parsed.summary;
-        } catch {}
-      }
-    }
+   // 3) studyQuestions yoxdursa amma summary içindədirsə
+if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
+  const s = a.summary
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  if (s.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(s);
+      if (parsed.studyQuestions) a.studyQuestions = parsed.studyQuestions;
+      if (parsed.summary) a.summary = parsed.summary;
+    } catch {}
+  }
+}
 
     // 4) studyQuestions string ola bilər
     if (a?.studyQuestions && typeof a.studyQuestions === "string") {
