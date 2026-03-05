@@ -75,7 +75,6 @@ NEVER begin the summary with introduction phrases like "This lecture covers...",
 Start DIRECTLY with the first real concept.
 
 SUMMARY TASK:
-SUMMARY TASK:
 - Your goal is to create a FULL STUDY NOTES (konspekt), not a short summary.
 - Rewrite the ENTIRE lecture in simple, easy-to-read language.
 - Keep EVERY topic, subtopic, definition, and fact from the original.
@@ -99,7 +98,7 @@ ${trimmed}`,
       },
     ],
     temperature: 0.4,
-    max_tokens: 6000,
+    max_tokens: 8000,
   });
 
   const raw = response.choices?.[0]?.message?.content?.trim() || "";
