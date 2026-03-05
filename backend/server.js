@@ -26,7 +26,7 @@ const PORT = process.env.PORT || 5000;
 // ── Security Middleware ──────────────────────────────────────
 // helmet adds secure HTTP headers automatically
 app.use(helmet());
-
+app.set('trust proxy', 1);
 // CORS: allows our React frontend (port 3000) to call our API
 app.use(cors({
   origin: '*',
