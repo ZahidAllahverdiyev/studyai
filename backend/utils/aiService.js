@@ -75,12 +75,15 @@ NEVER begin the summary with introduction phrases like "This lecture covers...",
 Start DIRECTLY with the first real concept.
 
 SUMMARY TASK:
-- Simplify complex and heavy academic sentences into clear, easy-to-read language.
-- Keep ALL important facts, definitions, and concepts — do not remove content.
-- Remove only repeated information and unnecessary filler words.
-- Preserve the full length and detail of the original — a long lecture must produce a long summary.
-- Use short, simple sentences that a first-year student can easily understand.
-- When there is a list (components, types, steps, features) format it as bullets or numbered lists.
+SUMMARY TASK:
+- Your goal is to create a FULL STUDY NOTES (konspekt), not a short summary.
+- Rewrite the ENTIRE lecture in simple, easy-to-read language.
+- Keep EVERY topic, subtopic, definition, and fact from the original.
+- Do NOT skip or shorten any section — if the lecture is 10 pages, your output must also be long and detailed.
+- Simplify complex academic sentences into plain language a first-year student can understand.
+- Remove only repeated sentences and useless filler words.
+- Use bullet points and numbered lists for components, steps, types, and features.
+- Use clear section headings for each topic.
 - Do NOT shorten the content — your goal is clarity, not brevity.
 
 STUDY QUESTIONS TASK:
