@@ -166,7 +166,9 @@ router.post("/analyze/:fileId", async (req, res) => {
 
     return res.json({ message: "Analysis complete!", analysis: file.aiAnalysis });
   } catch (err) {
-    console.error("AI Analysis error:", err);
+    console.error("AI Analysis error FULL:", err);
+    console.error("AI Analysis error MESSAGE:", err.message);
+    console.error("AI Analysis error STATUS:", err.status);
     await File.findByIdAndUpdate(req.params.fileId, { status: "failed" });
 
     if (err.status === 429 || err.message?.includes("rate") || err.message?.includes("quota")) {
