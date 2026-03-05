@@ -279,7 +279,11 @@ const [chatting, setChatting] = useState(false);
           <div className="card mb-4">
             <div className="analysis-section">
               <div className="analysis-section-title">📖 Summary</div>
-              <p className="summary-text">{analysis.summary}</p>
+              <p className="summary-text" style={{ whiteSpace: "pre-wrap" }}>
+  {analysis.summary.startsWith("{") 
+    ? (() => { try { return JSON.parse(analysis.summary).summary; } catch { return analysis.summary; } })()
+    : analysis.summary}
+</p>
               <button
   className="btn btn-secondary mt-4"
   onClick={handleDownloadDocx}
