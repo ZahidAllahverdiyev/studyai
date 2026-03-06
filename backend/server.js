@@ -1,8 +1,11 @@
-// ============================================================
-// server.js - Main entry point for the StudyAI Backend
-// This file sets up Express, connects to MongoDB, and
-// registers all API routes.
-// ============================================================
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err);
+  process.exit(1);
+});
 
 require('dotenv').config();
 
@@ -21,33 +24,24 @@ const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/user');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
-// ── Security Middleware ──────────────────────────────────────
-// helmet adds secure HTTP headers automatically
-app.use(helmet());
 app.set('trust proxy', 1);
-// CORS: allows our React frontend (port 3000) to call our API
-app.use(cors({
-  origin: '*',
-  credentials: false,
-}));
-// Rate limiting: prevents brute-force attacks
+app.use(helmet());
+app.use(cors({ origin: '*', credentials: false }));
+
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // max 100 requests per window per IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
 
-// Parse incoming JSON bodies
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
-// Serve uploaded files statically (so frontend can access them)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── API Routes ───────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/ai', aiRoutes);
@@ -55,12 +49,10 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/user', userRoutes);
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'StudyAI API is running!' });
 });
 
-// ── Global Error Handler ─────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(err.status || 500).json({
@@ -68,13 +60,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ── MongoDB Connection ───────────────────────────────────────
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ Connected to MongoDB');
-    app.listen(PORT, '0.0.0.0',() => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
