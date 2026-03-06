@@ -106,8 +106,10 @@ ${trimmed}`,
   try {
     const parsed = parseJSON(raw);
     return {
-      summary: parsed.summary || JSON.stringify(parsed.study_notes || parsed, null, 2),
-      keyPoints: parsed.keyPoints || parsed.key_points || [],
+      summary: parsed.summary || 
+               (parsed.study_notes ? Object.values(parsed.study_notes).map(s => 
+                 typeof s === 'object' ? `## ${s.title}\n${s.content}\n${(s.types||[]).join('\n')}` : s
+               ).join('\n\n') : JSON.stringify(parsed, null, 2)),
       studyQuestions: parsed.studyQuestions || parsed.study_questions || [],
     };
   } catch {
