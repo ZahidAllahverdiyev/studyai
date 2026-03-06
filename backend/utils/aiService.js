@@ -104,9 +104,13 @@ ${trimmed}`,
   const raw = response.choices?.[0]?.message?.content?.trim() || "";
 
   try {
-    return parseJSON(raw);
+    const parsed = parseJSON(raw);
+    return {
+      summary: parsed.summary || JSON.stringify(parsed.study_notes || parsed, null, 2),
+      keyPoints: parsed.keyPoints || parsed.key_points || [],
+      studyQuestions: parsed.studyQuestions || parsed.study_questions || [],
+    };
   } catch {
-    // Fallback so frontend doesn't crash
     return {
       summary: raw,
       studyQuestions: ["Could not parse study questions. Please try again."],
