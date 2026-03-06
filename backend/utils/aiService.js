@@ -110,7 +110,9 @@ ${trimmed}`,
                (parsed.study_notes ? Object.values(parsed.study_notes).map(s => 
                  typeof s === 'object' ? `## ${s.title}\n${s.content}\n${(s.types||[]).join('\n')}` : s
                ).join('\n\n') : JSON.stringify(parsed, null, 2)),
-      studyQuestions: parsed.studyQuestions || parsed.study_questions || [],
+      studyQuestions: (parsed.studyQuestions || parsed.study_questions || []).map(q => 
+        typeof q === 'object' ? (q.question || q.text || JSON.stringify(q)) : String(q)
+      ),
     };
   } catch {
     return {
