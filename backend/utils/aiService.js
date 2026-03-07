@@ -122,7 +122,7 @@ ${trimmed}`,
   });
 
   const raw = response.choices?.[0]?.message?.content?.trim() || "";
-  
+  console.log("Quiz raw:", raw.substring(0, 500));
   const cleaned = raw
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
