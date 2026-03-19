@@ -4,9 +4,10 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const Brevo = require('@getbrevo/brevo');
-const brevoClient = new Brevo.TransactionalEmailsApi();
-brevoClient.authentications['apiKey'].apiKey = process.env.BREVO_API_KEY;
+const SibApiV3Sdk = require('@getbrevo/brevo');
+const brevoClient = SibApiV3Sdk.ApiClient.instance;
+brevoClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
@@ -83,7 +84,7 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     // Email göndər
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
 sendSmtpEmail.subject = 'Your StudyAI verification code';
 sendSmtpEmail.to = [{ email: email }];
 sendSmtpEmail.sender = { name: 'StudyAI', email: process.env.EMAIL_USER };
@@ -99,7 +100,7 @@ sendSmtpEmail.htmlContent = `
     <p style="color: #888;">This code expires in <strong>10 minutes</strong>.</p>
   </div>
 `;
-await brevoClient.sendTransacEmail(sendSmtpEmail);
+await transactionalEmailsApi.sendTransacEmail(sendSmtpEmail);
 
     res.status(200).json({ message: 'Verification code sent.', email });
   } catch (err) {
