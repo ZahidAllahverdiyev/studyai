@@ -4,10 +4,47 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const SibApiV3Sdk = require('@getbrevo/brevo');
-const brevoClient = SibApiV3Sdk.ApiClient.instance;
-brevoClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
-const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
+const https = require('https');
+
+const sendBrevoEmail = (to, code) => {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      sender: { name: 'StudyAI', email: 'noreply@studyai.com' },
+      to: [{ email: to }],
+      subject: 'Your StudyAI verification code',
+      htmlContent: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #89b4fa;">Welcome to StudyAI! 🎓</h2>
+          <p>Your verification code is:</p>
+          <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px;
+                      background: #1e1e2e; color: #89b4fa; padding: 20px;
+                      text-align: center; border-radius: 12px; margin: 20px 0;">
+            ${code}
+          </div>
+          <p style="color: #888;">This code expires in <strong>10 minutes</strong>.</p>
+        </div>
+      `,
+    });
+
+    const req = https.request({
+      hostname: 'api.brevo.com',
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+};
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
@@ -84,23 +121,7 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     // Email göndər
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-sendSmtpEmail.subject = 'Your StudyAI verification code';
-sendSmtpEmail.to = [{ email: email }];
-sendSmtpEmail.sender = { name: 'StudyAI', email: process.env.EMAIL_USER };
-sendSmtpEmail.htmlContent = `
-  <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-    <h2 style="color: #89b4fa;">Welcome to StudyAI! 🎓</h2>
-    <p>Your verification code is:</p>
-    <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px;
-                background: #1e1e2e; color: #89b4fa; padding: 20px;
-                text-align: center; border-radius: 12px; margin: 20px 0;">
-      ${code}
-    </div>
-    <p style="color: #888;">This code expires in <strong>10 minutes</strong>.</p>
-  </div>
-`;
-await transactionalEmailsApi.sendTransacEmail(sendSmtpEmail);
+     await sendBrevoEmail(email, code);
 
     res.status(200).json({ message: 'Verification code sent.', email });
   } catch (err) {
