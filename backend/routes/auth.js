@@ -4,7 +4,8 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
@@ -12,15 +13,7 @@ const { protect } = require('../middleware/auth');
 const router = express.Router();
 
 // ── Email transporter ────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+
 
 // ── Helper: 6 rəqəmli kod yarat ─────────────────────────────
 const generateCode = () =>
@@ -89,23 +82,23 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     // Email göndər
-    await transporter.sendMail({
-      from: `"StudyAI" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Your StudyAI verification code',
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #89b4fa;">Welcome to StudyAI! 🎓</h2>
-          <p>Your verification code is:</p>
-          <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px;
-                      background: #1e1e2e; color: #89b4fa; padding: 20px;
-                      text-align: center; border-radius: 12px; margin: 20px 0;">
-            ${code}
-          </div>
-          <p style="color: #888;">This code expires in <strong>10 minutes</strong>.</p>
-        </div>
-      `,
-    });
+    await resend.emails.send({
+  from: 'StudyAI <onboarding@resend.dev>',
+  to: email,
+  subject: 'Your StudyAI verification code',
+  html: `
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #89b4fa;">Welcome to StudyAI! 🎓</h2>
+      <p>Your verification code is:</p>
+      <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px;
+                  background: #1e1e2e; color: #89b4fa; padding: 20px;
+                  text-align: center; border-radius: 12px; margin: 20px 0;">
+        ${code}
+      </div>
+      <p style="color: #888;">This code expires in <strong>10 minutes</strong>.</p>
+    </div>
+  `,
+});
 
     res.status(200).json({ message: 'Verification code sent.', email });
   } catch (err) {
