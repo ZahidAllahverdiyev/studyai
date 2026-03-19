@@ -93,13 +93,13 @@ navigate('/dashboard');
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
-                placeholder="Enter 6-digit code"
+                placeholder="______"
                 value={code}
                 onChange={e => {
                   setCode(e.target.value.replace(/\D/g, ''));
                   setError('');
                 }}
-                style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: '700' }}
+                style={{ textAlign: 'center', fontSize: '28px', letterSpacing: '4px', fontWeight: '700' }}
                 autoFocus
               />
             </div>
