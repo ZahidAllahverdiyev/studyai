@@ -41,13 +41,19 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
-  const register = async (name, email, password) => {
-    const res = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    return res.data;
-  };
+ const register = async (name, email, password) => {
+  const res = await api.post('/auth/register', { name, email, password });
+  // Register artıq yalnız kod göndərir, token vermir
+  return res.data;
+};
+
+const verifyEmail = async (email, code) => {
+  const res = await api.post('/auth/verify-email', { email, code });
+  localStorage.setItem('token', res.data.token);
+  localStorage.setItem('user', JSON.stringify(res.data.user));
+  setUser(res.data.user);
+  return res.data;
+};
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -56,7 +62,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register,verifyEmail, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
