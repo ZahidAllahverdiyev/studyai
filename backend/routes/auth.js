@@ -9,7 +9,7 @@ const https = require('https');
 const sendBrevoEmail = (to, code) => {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
-      sender: { name: 'StudyAI', email: 'noreply@studyai.com' },
+      sender: { name: 'StudyAI', email: 'strikecraft100@gmail.com' },
       to: [{ email: to }],
       subject: 'Your StudyAI verification code',
       htmlContent: `
