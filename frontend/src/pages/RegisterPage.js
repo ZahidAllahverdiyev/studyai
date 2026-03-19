@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser, setToken } = useAuth();
+  const { verifyEmail } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = e => {
@@ -60,15 +60,9 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-email', {
-        email: form.email,
-        code,
-      });
-      // Token və user-i saxla
-      localStorage.setItem('token', res.data.token);
-      toast.success('Account created! Welcome to StudyAI 🎓');
-      navigate('/dashboard');
-      window.location.reload();
+      await verifyEmail(form.email, code);
+toast.success('Account created! Welcome to StudyAI 🎓');
+navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Verification failed.');
     } finally {
