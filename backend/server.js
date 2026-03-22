@@ -32,8 +32,8 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
   origin: [
-    'https://studyai.one',
-    'https://www.studyai.one',
+    'https://stuadyai.one',
+    'https://www.stuadyai.one',
     'https://studyai-liart.vercel.app',
   ],
   credentials: true,
