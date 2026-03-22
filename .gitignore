@@ -9,9 +9,7 @@ node_modules/
 # Uploaded files
 backend/uploads/
 
-# Build output
-frontend/build/
-
+]
 # Logs
 *.log
 npm-debug.log*
