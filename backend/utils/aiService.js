@@ -106,8 +106,10 @@ QUESTION DESIGN PRINCIPLES:
 4. VARIETY — Cover different sections and topics of the lecture. Never ask two similar questions.
 5. PRECISION — Questions must be grammatically clean, specific, and unambiguous. Avoid vague wording.
 6. NO LAZY OPTIONS — Never use "All of the above", "None of the above", "Both A and B", or obviously wrong options.
-
+7. - NEVER ask "which of the following are..." or list-based questions where multiple options could be correct. Every question must have ONE definitively correct answer and THREE clearly wrong options.
+8. - Avoid questions about exhaustive lists — instead ask about specific, distinguishing facts.
 QUESTION TYPE DISTRIBUTION (apply this mix):
+
 - 4 questions: Factual but non-obvious (specific details a student must have read carefully)
 - 4 questions: Conceptual (why/how something works, not just what it is)
 - 2 questions: Comparative (difference or similarity between two concepts in the lecture)
