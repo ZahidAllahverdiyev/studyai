@@ -75,6 +75,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       email: user.email,
       avatar: user.avatar,
       stats: user.stats,
+      role: user,
     },
   });
 };
@@ -214,6 +215,7 @@ router.get('/me', protect, async (req, res) => {
         avatar: user.avatar,
         stats: user.stats,
         createdAt: user.createdAt,
+        role: user.role,
       },
     });
   } catch (err) {
