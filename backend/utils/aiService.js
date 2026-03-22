@@ -97,34 +97,48 @@ async function generateQuiz(text) {
 LANGUAGE RULE: Detect the language of the lecture text and respond in that SAME language entirely.
 
 YOUR MISSION:
-Create 12 multiple-choice questions that genuinely test whether a student has deeply understood the lecture — not just memorized surface facts.
+Create 12 multiple-choice questions that genuinely test whether a student has deeply understood the lecture.
 
-QUESTION DESIGN PRINCIPLES:
-1. DEPTH OVER TRIVIA — Ask about concepts, mechanisms, comparisons, and implications. Avoid asking obvious facts that anyone could guess.
-2. PLAUSIBLE DISTRACTORS — All 4 options must look convincing. A student who hasn't studied should struggle to choose. Wrong options should reflect common misconceptions or partially correct ideas.
-3. ONE UNAMBIGUOUS CORRECT ANSWER — The correct answer must be definitively supported by the lecture text. No trick questions.
-4. VARIETY — Cover different sections and topics of the lecture. Never ask two similar questions.
-5. PRECISION — Questions must be grammatically clean, specific, and unambiguous. Avoid vague wording.
-6. NO LAZY OPTIONS — Never use "All of the above", "None of the above", "Both A and B", or obviously wrong options.
-7. - NEVER ask "which of the following are..." or list-based questions where multiple options could be correct. Every question must have ONE definitively correct answer and THREE clearly wrong options.
-8. - Avoid questions about exhaustive lists — instead ask about specific, distinguishing facts.
-QUESTION TYPE DISTRIBUTION (apply this mix):
+ABSOLUTE RULES — NEVER VIOLATE:
+1. Every question must have EXACTLY ONE correct answer. No exceptions.
+2. NEVER ask about lists, categories, or enumerations from the lecture (e.g. "which interfaces", "which types", "which features", "which advantages"). These always produce ambiguous answers.
+3. NEVER create questions where multiple options could be considered correct or partially correct.
+4. All 4 options must be plausible — a student who hasn't studied should struggle to choose.
+5. NEVER use "All of the above", "None of the above", "Both A and B".
+6. Use ONLY information explicitly stated in the lecture. Never add outside knowledge.
+7. Cover DIFFERENT topics — never ask two similar questions.
+8. The correct answer must be ONE specific, unambiguous fact from the lecture.
 
-- 4 questions: Factual but non-obvious (specific details a student must have read carefully)
-- 4 questions: Conceptual (why/how something works, not just what it is)
-- 2 questions: Comparative (difference or similarity between two concepts in the lecture)
-- 2 questions: Applied (using lecture knowledge to reason about a scenario)
+GOOD QUESTION TYPES (use these):
+- "What replaced X?" → one specific answer
+- "What is the main disadvantage of X?" → one specific answer  
+- "In what year was X introduced?" → one specific answer
+- "What does X measure?" → one specific answer
+- "Why is X used instead of Y?" → one specific answer
+- "What happens when X occurs?" → one specific answer
 
-EXPLANATION QUALITY:
-- Each explanation must quote or closely reference the specific part of the lecture that proves the answer.
-- Explanations should be educational — teach the student WHY the answer is correct.
+BAD QUESTION TYPES (never use these):
+- "Which of the following are types of X?" → multiple correct answers possible
+- "What are the advantages of X?" → multiple correct answers possible
+- "Which interfaces does X support?" → multiple correct answers possible
+- "What are the features of X?" → multiple correct answers possible
 
-STRICT RULES:
-- Use ONLY information explicitly stated in the lecture text. Never add outside knowledge.
-- Generate exactly 12 questions.
-- Respond ONLY with valid JSON. No extra text, no markdown, no explanation outside the JSON.
+QUESTION TYPE DISTRIBUTION:
+- 4 questions: Specific factual (dates, measurements, names — non-obvious details)
+- 4 questions: Conceptual (why/how something works)
+- 2 questions: Comparative (specific difference between two concepts)
+- 2 questions: Cause-effect (what causes what, what results from what)
 
-OUTPUT FORMAT:
+DISTRACTOR RULES:
+- Wrong options must reflect common misconceptions, not obviously wrong guesses.
+- Wrong options must be from the same category as the correct answer.
+- Example: if correct answer is "5400 RPM", wrong options should also be RPM values, not random words.
+
+EXPLANATION RULES:
+- Each explanation must directly quote or closely reference the lecture text.
+- Explain WHY the correct answer is right AND why the others are wrong.
+
+STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text:
 {
   "questions": [
     {
@@ -136,7 +150,7 @@ OUTPUT FORMAT:
     }
   ]
 }
-
+  
 LECTURE TEXT:
 ${trimmed}`,
       },
