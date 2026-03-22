@@ -18,6 +18,7 @@ import ResultsPage from './pages/ResultsPage';
 import Layout from './components/Layout';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/Admin';
 
 // Protected route wrapper: redirects to login if not authenticated
 function PrivateRoute({ children }) {
@@ -26,10 +27,23 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
+      <Route path="/admin" element={
+  <AdminRoute>
+    <AdminPage />
+  </AdminRoute>
+} />
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
       <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />

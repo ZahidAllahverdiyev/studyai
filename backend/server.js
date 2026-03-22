@@ -9,6 +9,7 @@ process.on('unhandledRejection', (err) => {
 
 require('dotenv').config();
 
+const adminRoutes = require('./routes/admin');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -50,7 +51,7 @@ const loginLimiter = rateLimit({
 });
 app.use('/api/auth/login', loginLimiter);
 
-
+app.use('/api/admin', adminRoutes);
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));

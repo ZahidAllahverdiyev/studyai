@@ -48,7 +48,11 @@ verificationExpires: {
   type: String,
   default: "",
 },
-    // Learning statistics tracked over time
+    role: {
+  type: String,
+  enum: ['user', 'admin'],
+  default: 'user',
+},
     stats: {
       totalFilesUploaded: { type: Number, default: 0 },
       totalQuizzesTaken: { type: Number, default: 0 },
