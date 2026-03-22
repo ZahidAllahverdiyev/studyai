@@ -51,7 +51,7 @@ const loginLimiter = rateLimit({
 });
 app.use('/api/auth/login', loginLimiter);
 
-app.use(xss());
+
 app.use(mongoSanitize());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
