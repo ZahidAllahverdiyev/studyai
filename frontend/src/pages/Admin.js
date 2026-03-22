@@ -11,6 +11,7 @@ const Admin = () => {
   const API = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchStats();
     fetchUsers();
     fetchFiles();
