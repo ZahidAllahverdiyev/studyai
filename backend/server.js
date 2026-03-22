@@ -15,7 +15,6 @@ const helmet = require('helmet');
 const mongoose = require('mongoose');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
-const xss = require('xss-clean');
 const mongoSanitize = require('express-mongo-sanitize');
 
 const authRoutes = require('./routes/auth');
@@ -53,6 +52,7 @@ app.use('/api/auth/login', loginLimiter);
 
 
 app.use(mongoSanitize());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
