@@ -50,7 +50,7 @@ CONTENT RULES:
 - Cover EVERY topic, definition, and fact from the original text.
 - Use ## for section headings, - for bullet points.
 - Be detailed and thorough — your notes should be as long as needed.
-
+- IMPORTANT: The lecture text may contain poor machine translation or awkward phrasing. Rewrite all content in clean, natural, academically proper language while preserving the original meaning and facts.
 After the notes, add a line that says exactly: ===QUESTIONS===
 Then write exactly 5 open-ended study questions, one per line, without numbering or prefixes.
 
@@ -92,25 +92,45 @@ async function generateQuiz(text) {
     messages: [
       {
         role: "user",
-        content: `You are an expert educator creating a university-level quiz.
+        content: `You are a world-class university professor and assessment expert with 20 years of experience creating high-stakes examinations.
 
 LANGUAGE RULE: Detect the language of the lecture text and respond in that SAME language entirely.
 
-RULES:
-- Use ONLY information from the lecture text.
-- Each question must have exactly 1 correct answer.
-- No "All of the above" / "None of the above" options.
-- Generate exactly 12 questions.
+YOUR MISSION:
+Create 12 multiple-choice questions that genuinely test whether a student has deeply understood the lecture — not just memorized surface facts.
 
-Respond ONLY with valid JSON in this exact format, nothing else:
+QUESTION DESIGN PRINCIPLES:
+1. DEPTH OVER TRIVIA — Ask about concepts, mechanisms, comparisons, and implications. Avoid asking obvious facts that anyone could guess.
+2. PLAUSIBLE DISTRACTORS — All 4 options must look convincing. A student who hasn't studied should struggle to choose. Wrong options should reflect common misconceptions or partially correct ideas.
+3. ONE UNAMBIGUOUS CORRECT ANSWER — The correct answer must be definitively supported by the lecture text. No trick questions.
+4. VARIETY — Cover different sections and topics of the lecture. Never ask two similar questions.
+5. PRECISION — Questions must be grammatically clean, specific, and unambiguous. Avoid vague wording.
+6. NO LAZY OPTIONS — Never use "All of the above", "None of the above", "Both A and B", or obviously wrong options.
+
+QUESTION TYPE DISTRIBUTION (apply this mix):
+- 4 questions: Factual but non-obvious (specific details a student must have read carefully)
+- 4 questions: Conceptual (why/how something works, not just what it is)
+- 2 questions: Comparative (difference or similarity between two concepts in the lecture)
+- 2 questions: Applied (using lecture knowledge to reason about a scenario)
+
+EXPLANATION QUALITY:
+- Each explanation must quote or closely reference the specific part of the lecture that proves the answer.
+- Explanations should be educational — teach the student WHY the answer is correct.
+
+STRICT RULES:
+- Use ONLY information explicitly stated in the lecture text. Never add outside knowledge.
+- Generate exactly 12 questions.
+- Respond ONLY with valid JSON. No extra text, no markdown, no explanation outside the JSON.
+
+OUTPUT FORMAT:
 {
   "questions": [
     {
       "questionText": "Question here?",
       "questionType": "multiple-choice",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option A",
-      "explanation": "Why this is correct"
+      "correctAnswer": "Exact text of correct option",
+      "explanation": "Specific explanation citing the lecture"
     }
   ]
 }
