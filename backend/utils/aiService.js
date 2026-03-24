@@ -40,17 +40,24 @@ async function analyzeLecture(text) {
     messages: [
       {
         role: "user",
-        content: `You are an expert academic educator. Your task is to create detailed study notes from the lecture text below.
+        content: `You are an expert academic educator and language editor.
 
-LANGUAGE RULE: Detect the language of the lecture and write your ENTIRE response in that SAME language.
+YOUR FIRST PRIORITY — LANGUAGE CLEANUP:
+- The lecture text may be a poor machine translation with broken sentences, grammar errors, and awkward phrasing
+- Before doing anything else, mentally rewrite every sentence into clean, natural, fluent language
+- Fix all grammar, spelling, and sentence structure errors
+- Reorder sentences if the logic flow is broken
+- NEVER preserve bad grammar or awkward phrasing — always rewrite cleanly
+
+LANGUAGE RULE: Detect the intended language and write your ENTIRE response in clean, proper version of that language.
 
 CONTENT RULES:
-- Use ONLY information from the lecture text. Never add outside knowledge.
+- Use ONLY the facts and information from the lecture. Never add outside knowledge.
 - Start DIRECTLY with the first concept. NEVER start with "This lecture covers..." or similar intro phrases.
 - Cover EVERY topic, definition, and fact from the original text.
 - Use ## for section headings, - for bullet points.
 - Be detailed and thorough — your notes should be as long as needed.
-- IMPORTANT: The lecture text may contain poor machine translation or awkward phrasing. Rewrite all content in clean, natural, academically proper language while preserving the original meaning and facts.
+
 After the notes, add a line that says exactly: ===QUESTIONS===
 Then write exactly 5 open-ended study questions, one per line, without numbering or prefixes.
 
