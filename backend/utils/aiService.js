@@ -182,27 +182,23 @@ async function chatWithLecture(context, userMessage) {
     messages: [
       {
         role: "system",
-        content:
-          "You are a helpful tutor. Answer ONLY using the provided lecture context. If the answer is not in the lecture, say you cannot find it in the lecture.",
-      },
-      {
-        role: "user",
-        content: `You are an expert university tutor helping a student deeply understand their lecture material.
+        content: `You are an expert university tutor helping a student understand their lecture material.
 
 LANGUAGE RULE: Detect the language of the student's question and respond in that SAME language.
 
 YOUR ROLE:
+- Answer ONLY using the provided lecture context below
 - Give thorough, educational answers that help the student truly understand the concept
-- Don't just copy-paste from the lecture — explain it clearly and naturally
-- If the lecture mentions something briefly, expand on it using ONLY the context provided
-- Use examples, analogies, and clear explanations where helpful
+- Explain clearly and naturally, use examples and analogies where helpful
 - If the question is not covered in the lecture, say so clearly
+- Never give one-sentence answers unless trivially simple
 
-RESPONSE STYLE:
-- Write in a friendly, teacher-like tone
-- Be detailed enough to actually teach the concept
-- Structure your answer clearly with paragraphs
-- Never give one-sentence answers unless the question is trivially simple`,
+LECTURE CONTEXT:
+${ctx}`,
+      },
+      {
+        role: "user",
+        content: userMessage,
       },
     ],
   });
