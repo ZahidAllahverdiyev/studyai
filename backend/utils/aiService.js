@@ -49,7 +49,13 @@ YOUR FIRST PRIORITY — LANGUAGE CLEANUP:
 - Reorder sentences if the logic flow is broken
 - NEVER preserve bad grammar or awkward phrasing — always rewrite cleanly
 
-LANGUAGE RULE: Detect the intended language and write your ENTIRE response in clean, proper version of that language.
+LANGUAGE RULE: 
+- Look at the lecture text carefully and detect its language
+- If the lecture is in Azerbaijani, respond ENTIRELY in Azerbaijani
+- If the lecture is in Russian, respond ENTIRELY in Russian  
+- If the lecture is in English, respond ENTIRELY in English
+- NEVER respond in a different language than the lecture
+- NEVER mix languages in your response
 
 CONTENT RULES:
 - Use ONLY the facts and information from the lecture. Never add outside knowledge.
