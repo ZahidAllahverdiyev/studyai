@@ -4,14 +4,71 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
+// SVG Icon components
+const Icons = {
+  Dashboard: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  ),
+  Upload: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  ),
+  Settings: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  ),
+  Profile: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  Sun: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  ),
+  Moon: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  ),
+  Menu: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  Close: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+  Logout: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  ),
+};
+
 const navItems = [
-  { to: '/dashboard', icon: '⊞', label: 'Dashboard' },
-  { to: '/upload',    icon: '↑',  label: 'Upload Files' },
-  { to: '/settings',  icon: '◈',  label: 'Settings' },
-  { to: '/profile',   icon: '◉',  label: 'Profile' },
+  { to: '/dashboard', Icon: Icons.Dashboard, label: 'Dashboard' },
+  { to: '/upload',    Icon: Icons.Upload,    label: 'Upload Files' },
+  { to: '/settings',  Icon: Icons.Settings,  label: 'Settings' },
+  { to: '/profile',   Icon: Icons.Profile,   label: 'Profile' },
 ];
 
-// All colors use CSS variables — works for both dark and light mode
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
 
@@ -30,7 +87,6 @@ const css = `
     background: var(--bg);
   }
 
-  /* ── SIDEBAR ── */
   .sidebar {
     width: 230px;
     min-width: 230px;
@@ -101,7 +157,11 @@ const css = `
     width: 3px; border-radius: 0 3px 3px 0;
     background: var(--grad);
   }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-icon {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
 
   .sidebar-footer { margin-top: auto; }
 
@@ -146,13 +206,12 @@ const css = `
   }
   .logout-btn {
     background: none; border: none; color: var(--muted);
-    cursor: pointer; font-size: 16px; padding: 4px;
+    cursor: pointer; padding: 4px;
     border-radius: 6px; transition: color 0.2s, background 0.2s;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .logout-btn:hover { color: var(--red); background: rgba(245,110,110,0.12); }
 
-  /* ── MAIN ── */
   .main-content {
     margin-left: 230px;
     flex: 1; min-height: 100vh;
@@ -160,7 +219,6 @@ const css = `
     background: var(--bg);
   }
 
-  /* ── MOBILE HEADER ── */
   .mobile-header {
     display: none;
     position: fixed;
@@ -176,7 +234,7 @@ const css = `
     border: 1px solid var(--border);
     border-radius: 8px; color: var(--text);
     width: 36px; height: 36px;
-    cursor: pointer; font-size: 16px;
+    cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.2s;
   }
@@ -195,7 +253,6 @@ const css = `
     .main-content { margin-left: 0; padding: 80px 20px 32px; }
   }
 
-  /* ── GLOBAL PAGE STYLES ── */
   .page-header {
     display: flex; align-items: flex-start;
     justify-content: space-between;
@@ -373,7 +430,7 @@ export default function Layout() {
             <span className="sidebar-logo-text">StudyAI</span>
           </div>
           <button className="hamburger-btn" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? '✕' : '☰'}
+            {menuOpen ? <Icons.Close /> : <Icons.Menu />}
           </button>
         </header>
 
@@ -387,22 +444,22 @@ export default function Layout() {
           </div>
 
           <nav className="sidebar-nav">
-            {navItems.map((item) => (
+            {navItems.map(({ to, Icon, label }) => (
               <NavLink
-                key={item.to}
-                to={item.to}
+                key={to}
+                to={to}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
+                <span className="nav-icon"><Icon /></span>
+                {label}
               </NavLink>
             ))}
           </nav>
 
           <div className="sidebar-footer">
             <button className="theme-btn" onClick={toggleTheme}>
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
             <div className="user-chip">
@@ -411,7 +468,9 @@ export default function Layout() {
                 <div className="user-name">{user?.name}</div>
                 <div className="user-email">{user?.email}</div>
               </div>
-              <button className="logout-btn" onClick={handleLogout} title="Log out">↩</button>
+              <button className="logout-btn" onClick={handleLogout} title="Log out">
+                <Icons.Logout />
+              </button>
             </div>
           </div>
         </aside>
