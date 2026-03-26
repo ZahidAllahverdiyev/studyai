@@ -2,7 +2,7 @@
 // src/pages/AnalysisPage.js - Shows AI analysis of a file
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import toast from "react-hot-toast";
@@ -21,6 +21,10 @@ const [chatting, setChatting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
+
+  const isMountedRef = useRef(true);
+  const pollingRef = useRef(null);
+  const [pollingActive, setPollingActive] = useState(false);
 
   const normalizeAnalysis = useCallback((raw) => {
     if (!raw) return null;
@@ -95,7 +99,40 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
     };
   }, []);
 
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setPollingActive(false);
+  }, []);
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    setPollingActive(true);
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/ai/analysis/${fileId}`);
+        if (!isMountedRef.current) return;
+
+        const status = res.data?.status;
+        setFile({ name: res.data?.fileName, status });
+
+        const fixed = normalizeAnalysis(res.data?.analysis);
+        if (fixed?.summary) setAnalysis(fixed);
+
+        if (status === "completed" || status === "failed") {
+          stopPolling();
+        }
+      } catch (err) {
+        // Keep polling.
+      }
+    }, 2500);
+  }, [fileId, normalizeAnalysis, stopPolling]);
+
   useEffect(() => {
+    isMountedRef.current = true;
     let isMounted = true;
 
     api
@@ -107,6 +144,9 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
 
         const fixed = normalizeAnalysis(res.data.analysis);
         if (fixed?.summary) setAnalysis(fixed);
+
+        if (res.data?.status === "processing") startPolling();
+        else stopPolling();
       })
       .catch(() => toast.error("File not found"))
       .finally(() => {
@@ -115,16 +155,25 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
 
     return () => {
       isMounted = false;
+      isMountedRef.current = false;
+      stopPolling();
     };
-  }, [fileId, normalizeAnalysis]);
+  }, [fileId, normalizeAnalysis, startPolling, stopPolling]);
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
+      // Mark status in UI immediately; backend will set real status shortly after.
+      setFile((prev) => (prev ? { ...prev, status: "processing" } : prev));
+      startPolling();
+
       const res = await api.post(`/ai/analyze/${fileId}`);
-      setAnalysis(normalizeAnalysis(res.data.analysis));
+      const fixed = normalizeAnalysis(res.data.analysis);
+      if (fixed?.summary) setAnalysis(fixed);
       toast.success("AI analysis complete! ✨");
     } catch (err) {
+      setFile((prev) => (prev ? { ...prev, status: "failed" } : prev));
+      stopPolling();
       const msg = err.response?.data?.error || "Analysis failed.";
       toast.error(msg);
       if (msg.includes("little text")) {
@@ -132,6 +181,7 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
       }
     } finally {
       setAnalyzing(false);
+      stopPolling();
     }
   };
 
@@ -247,7 +297,10 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
       </div>
 
       {/* Analyze Prompt (if not yet analyzed) */}
-      {!analysis && !analyzing && (
+      {!analysis &&
+        !analyzing &&
+        file?.status !== "processing" &&
+        !pollingActive && (
         <div className="card" style={{ textAlign: "center", padding: "60px 32px" }}>
           <div style={{ fontSize: 64, marginBottom: 20 }}>🤖</div>
           <h2 style={{ fontFamily: "Playfair Display", marginBottom: 12 }}>
@@ -264,7 +317,7 @@ if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
       )}
 
       {/* Loading Animation */}
-      {analyzing && (
+      {!analysis && (analyzing || file?.status === "processing" || pollingActive) && (
         <div className="card">
           <div className="ai-loading">
             <div className="ai-loading-dots">
