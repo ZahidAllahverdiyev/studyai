@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import toast from "react-hot-toast";
+
+const DEFAULT_AVATAR = "/avatars/learning.png";
 
 function prettyDate(d) {
   if (!d) return "—";
@@ -36,15 +38,40 @@ const css = `
     grid-column: 1 / -1;
   }
 
+  .avatar-wrapper {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
   .profile-avatar-img {
-    width: 64px; height: 64px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     object-fit: cover;
     background: var(--surface2);
-    flex-shrink: 0;
     outline: 2px dashed rgba(129,140,248,0.5);
     outline-offset: 3px;
+    display: block;
   }
+
+  .avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 18px;
+  }
+  .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
+  .avatar-upload-input { display: none; }
 
   .profile-name {
     font-family: 'Sora', sans-serif;
@@ -235,25 +262,46 @@ const css = `
     object-fit: cover;
     display: block;
   }
+
+  .upload-avatar-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--surface2);
+    border: 1.5px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .upload-avatar-btn:hover {
+    border-color: #818cf8;
+    background: rgba(129,140,248,0.08);
+  }
 `;
+
+const presetAvatars = [
+  "/avatars/joystick.png",
+  "/avatars/flash.png",
+  "/avatars/cpu.png",
+  "/avatars/puzzle.png",
+  "/avatars/graduate.png",
+  "/avatars/mortarboard.png",
+  "/avatars/learning.png",
+];
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const presetAvatars = [
-    "/avatars/joystick.png",
-    "/avatars/flash.png",
-    "/avatars/cpu.png",
-    "/avatars/puzzle.png",
-    "/avatars/graduate.png",
-    "/avatars/mortarboard.png",
-    "/avatars/learning.png",
-  ];
+  const fileInputRef = useRef(null);
 
   const [selectedAvatar, setSelectedAvatar] = useState(
-    localStorage.getItem("avatar") || presetAvatars[0]
+    user?.avatar || localStorage.getItem("avatar") || DEFAULT_AVATAR
   );
+  const [uploading, setUploading] = useState(false);
   const [loadingStats, setLoadingStats] = useState(true);
   const [stats, setStats] = useState({ totalFiles: 0, totalQuizzes: 0, averageScore: 0 });
 
@@ -274,10 +322,36 @@ export default function ProfilePage() {
     return () => { alive = false; };
   }, []);
 
-  const pickAvatar = (avatar) => {
+  // Preset avatar seç
+  const pickPreset = (avatar) => {
     localStorage.setItem("avatar", avatar);
     setSelectedAvatar(avatar);
     toast.success("Avatar updated!");
+  };
+
+  // Oz şəkilini yüklə
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      setUploading(true);
+      const res = await api.post("/users/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const url = res.data.avatar;
+      setSelectedAvatar(url);
+      localStorage.setItem("avatar", url);
+      toast.success("Avatar updated!");
+    } catch (err) {
+      toast.error("Upload failed.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   const name   = user?.name || "User";
@@ -290,7 +364,6 @@ export default function ProfilePage() {
     <>
       <style>{css}</style>
 
-      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Profile</h1>
@@ -311,7 +384,27 @@ export default function ProfilePage() {
         {/* ── Left: User card ── */}
         <div className="profile-card">
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
-            <img src={selectedAvatar} alt="avatar" className="profile-avatar-img" />
+
+            {/* Avatar — üstünə klik edəndə fayl seç */}
+            <div className="avatar-wrapper" onClick={() => fileInputRef.current?.click()}>
+              <img
+                src={selectedAvatar}
+                alt="avatar"
+                className="profile-avatar-img"
+                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+              />
+              <div className="avatar-overlay">
+                {uploading ? "⏳" : "📷"}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="avatar-upload-input"
+                onChange={handleFileChange}
+              />
+            </div>
+
             <div>
               <div className="profile-name">{name}</div>
               <div className="profile-email">{email}</div>
@@ -384,16 +477,29 @@ export default function ProfilePage() {
         <div className="profile-card profile-card-full">
           <div className="section-label">Choose avatar</div>
           <div className="avatar-grid">
+
+            {/* + öz şəkilini yüklə düyməsi */}
+            <div
+              className="upload-avatar-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload your photo"
+            >
+              {uploading ? "⏳" : "+"}
+            </div>
+
             {presetAvatars.map((avatar) => (
               <button
                 key={avatar}
-                onClick={() => pickAvatar(avatar)}
+                onClick={() => pickPreset(avatar)}
                 className={`avatar-btn ${selectedAvatar === avatar ? "selected" : ""}`}
               >
                 <img src={avatar} alt="avatar option" />
               </button>
             ))}
           </div>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
+            Click + to upload your own photo · Max 2MB · JPG, PNG, WEBP
+          </p>
         </div>
 
       </div>
