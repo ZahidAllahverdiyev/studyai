@@ -11,12 +11,14 @@ const Quiz = require("../models/Quiz");
 
 const router = express.Router();
 
-// ── Avatar upload config ──────────────────────────────────────
+const avatarDir = path.join(__dirname, "..", "uploads", "avatars");
+if (!fsSync.existsSync(avatarDir)) {
+  fsSync.mkdirSync(avatarDir, { recursive: true });
+}
+
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, "../uploads/avatars");
-    if (!fsSync.existsSync(dir)) fsSync.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+    cb(null, avatarDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -29,41 +31,50 @@ const avatarUpload = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/webp"];
-    allowed.includes(file.mimetype)
-      ? cb(null, true)
-      : cb(new Error("Only jpg/png/webp allowed"));
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only jpg/png/webp allowed"));
   },
 });
 
-// POST /api/users/avatar
+// POST /api/user/avatar
 router.post("/avatar", protect, avatarUpload.single("avatar"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-
-    const user = await User.findById(req.user._id);
-
-    // Köhnə custom avatarı sil
-    if (user.avatar && user.avatar.includes("/uploads/avatars/")) {
-      const oldPath = path.join(__dirname, "../", user.avatar);
-      if (fsSync.existsSync(oldPath)) fsSync.unlinkSync(oldPath);
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.avatar && user.avatar.includes("/uploads/avatars/")) {
+      const oldPath = path.join(__dirname, "..", user.avatar.replace(/^\/+/, ""));
+      if (fsSync.existsSync(oldPath)) {
+        fsSync.unlinkSync(oldPath);
+      }
+    }
+
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
     user.avatar = avatarUrl;
     await user.save();
 
-    res.json({ avatar: avatarUrl });
+    return res.json({
+      message: "Avatar uploaded successfully",
+      avatar: avatarUrl,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("AVATAR_UPLOAD_ERROR:", err);
+    return res.status(500).json({
+      message: err.message || "Avatar upload failed",
+    });
   }
 });
 
-// ── Reset ─────────────────────────────────────────────────────
+// DELETE /api/user/reset
 router.delete("/reset", protect, async (req, res) => {
   try {
     const userId = req.user._id;
-
     const files = await File.find({ user: userId }).select("filePath");
 
     for (const f of files) {

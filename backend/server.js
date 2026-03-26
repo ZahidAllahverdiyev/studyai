@@ -2,6 +2,7 @@ process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err);
   process.exit(1);
 });
+
 process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED REJECTION:', err);
   process.exit(1);
@@ -9,7 +10,6 @@ process.on('unhandledRejection', (err) => {
 
 require('dotenv').config();
 
-const adminRoutes = require('./routes/admin');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,6 +18,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 
+const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const fileRoutes = require('./routes/files');
 const aiRoutes = require('./routes/ai');
@@ -30,6 +31,7 @@ const PORT = process.env.PORT || 10000;
 
 app.set('trust proxy', 1);
 app.use(helmet());
+
 app.use(cors({
   origin: [
     'https://stuadyai.one',
@@ -44,21 +46,22 @@ const limiter = rateLimit({
   max: 100,
   message: { error: 'Too many requests, please try again later.' }
 });
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: 'Too many login attempts, please try again in 15 minutes.' }
 });
-app.use('/api/auth/login', loginLimiter);
 
-app.use("/uploads/avatars", express.static(path.join(__dirname, "uploads/avatars")));
-app.use('/api/admin', adminRoutes);
+app.use('/api/auth/login', loginLimiter);
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/ai', aiRoutes);
