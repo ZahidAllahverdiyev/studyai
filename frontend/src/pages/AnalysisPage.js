@@ -1,499 +1,508 @@
-// ============================================================
-// src/pages/AnalysisPage.js - Shows AI analysis of a file
-// ============================================================
-
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 
-export default function AnalysisPage() {
-  const { fileId } = useParams();
+const DEFAULT_AVATAR = "/avatars/learning.png";
+
+function prettyDate(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+  catch { return "—"; }
+}
+
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
+
+  .profile-root * { box-sizing: border-box; }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  @media (max-width: 900px) {
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+
+  .profile-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+
+  .profile-card-full {
+    grid-column: 1 / -1;
+  }
+
+  .avatar-wrapper {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .profile-avatar-img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface2);
+    outline: 2px dashed rgba(129,140,248,0.5);
+    outline-offset: 3px;
+    display: block;
+  }
+
+  .avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 18px;
+  }
+  .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
+  .avatar-upload-input { display: none; }
+
+  .profile-name {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.3px;
+  }
+  .profile-email { font-size: 13px; color: var(--subtext); margin-top: 3px; }
+
+  .member-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(52,211,153,0.12);
+    color: #34d399;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-top: 7px;
+  }
+  .member-pill-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #34d399;
+    display: inline-block;
+  }
+
+  .p-divider {
+    height: 0.5px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 5px 0;
+  }
+  .info-label { color: var(--subtext); }
+  .info-value { font-weight: 500; color: var(--text); }
+
+  .profile-edit-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .profile-edit-btn:hover { background: var(--surface2); }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Sora', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-num.files   { color: #818cf8; }
+  .stat-num.quizzes { color: #34d399; }
+  .stat-num.score   { color: #f59e0b; }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .score-section {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  .score-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .score-pct {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .score-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(52,211,153,0.12);
+    color: #34d399;
+  }
+
+  .score-bar-bg {
+    height: 5px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #818cf8, #34d399);
+    transition: width 1s ease;
+  }
+
+  .continue-btn {
+    width: 100%;
+    padding: 12px;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .continue-btn:hover { background: #4338ca; }
+
+  .avatar-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .avatar-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    padding: 5px;
+    cursor: pointer;
+    background: var(--surface2);
+    border: 1.5px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .avatar-btn:hover { transform: scale(1.05); }
+  .avatar-btn.selected {
+    border-color: #818cf8 !important;
+    background: rgba(129,140,248,0.1);
+  }
+  .avatar-btn img {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .upload-avatar-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--surface2);
+    border: 1.5px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 20px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .upload-avatar-btn:hover {
+    border-color: #818cf8;
+    background: rgba(129,140,248,0.08);
+  }
+`;
+
+const presetAvatars = [
+  "/avatars/joystick.png",
+  "/avatars/flash.png",
+  "/avatars/cpu.png",
+  "/avatars/puzzle.png",
+  "/avatars/graduate.png",
+  "/avatars/mortarboard.png",
+  "/avatars/learning.png",
+];
+
+export default function ProfilePage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
-  const [file, setFile] = useState(null);
-  const [chatMessages, setChatMessages] = useState([
-  { role: "assistant", content: "Ask me anything about this lecture 👇" },
-]);
-const [chatInput, setChatInput] = useState("");
-const [chatting, setChatting] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [generatingQuiz, setGeneratingQuiz] = useState(false);
-
-  const isMountedRef = useRef(true);
-  const pollingRef = useRef(null);
-  const [pollingActive, setPollingActive] = useState(false);
-
-  const normalizeAnalysis = useCallback((raw) => {
-    if (!raw) return null;
-
-    let a = raw;
-
-    // 1) analysis özü string ola bilər
-    if (typeof a === "string") {
-      try { a = JSON.parse(a); } 
-      catch { return { summary: a, keyPoints: [], studyQuestions: [] }; }
-    }
-
-    // 2) summary içində JSON string ola bilər
-if (a?.summary && typeof a.summary === "string") {
-  const s = a.summary
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  if (s.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(s);
-      if (parsed.summary) a = { ...a, ...parsed };
-    } catch {}
-  }
-}
-
-   // 3) studyQuestions yoxdursa amma summary içindədirsə
-if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
-  const s = a.summary
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  if (s.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(s);
-      if (parsed.studyQuestions) a.studyQuestions = parsed.studyQuestions;
-      if (parsed.summary) a.summary = parsed.summary;
-    } catch {}
-  }
-}
-
-    // 4) studyQuestions string ola bilər
-    if (a?.studyQuestions && typeof a.studyQuestions === "string") {
-      try {
-        a.studyQuestions = JSON.parse(a.studyQuestions);
-      } catch {
-        a.studyQuestions = a.studyQuestions
-          .split("\n")
-          .map((x) => x.replace(/^\s*(Q?\d+[).:-]\s*)/i, "").trim())
-          .filter(Boolean);
-      }
-    }
-
-    // 5) keyPoints string ola bilər
-    if (a?.keyPoints && typeof a.keyPoints === "string") {
-      try {
-        a.keyPoints = JSON.parse(a.keyPoints);
-      } catch {
-        a.keyPoints = a.keyPoints
-          .split("\n")
-          .map((x) => x.replace(/^\s*[-•\d.).:-]+\s*/, "").trim())
-          .filter(Boolean);
-      }
-    }
-
-    return {
-      summary: a.summary || "",
-      keyPoints: Array.isArray(a.keyPoints) ? a.keyPoints : [],
-      studyQuestions: Array.isArray(a.studyQuestions) ? a.studyQuestions : [],
-    };
-  }, []);
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-    setPollingActive(false);
-  }, []);
-
-  const startPolling = useCallback(() => {
-    if (pollingRef.current) return;
-    setPollingActive(true);
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await api.get(`/ai/analysis/${fileId}`);
-        if (!isMountedRef.current) return;
-
-        const status = res.data?.status;
-        setFile({ name: res.data?.fileName, status });
-
-        const fixed = normalizeAnalysis(res.data?.analysis);
-        if (fixed?.summary) setAnalysis(fixed);
-
-        if (status === "completed" || status === "failed") {
-          stopPolling();
-        }
-      } catch (err) {
-        // Keep polling.
-      }
-    }, 2500);
-  }, [fileId, normalizeAnalysis, stopPolling]);
+  const [selectedAvatar, setSelectedAvatar] = useState(
+    user?.avatar || localStorage.getItem("avatar") || DEFAULT_AVATAR
+  );
+  const [uploading, setUploading] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [stats, setStats] = useState({ totalFiles: 0, totalQuizzes: 0, averageScore: 0 });
 
   useEffect(() => {
-    isMountedRef.current = true;
-    let isMounted = true;
-
-    api
-      .get(`/ai/analysis/${fileId}`)
-      .then((res) => {
-        if (!isMounted) return;
-
-        setFile({ name: res.data.fileName, status: res.data.status });
-
-        const fixed = normalizeAnalysis(res.data.analysis);
-        if (fixed?.summary) setAnalysis(fixed);
-
-        if (res.data?.status === "processing") startPolling();
-        else stopPolling();
-      })
-      .catch(() => toast.error("File not found"))
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-      isMountedRef.current = false;
-      stopPolling();
-    };
-  }, [fileId, normalizeAnalysis, startPolling, stopPolling]);
-
-  const handleAnalyze = async () => {
-    setAnalyzing(true);
-    try {
-      // Mark status in UI immediately; backend will set real status shortly after.
-      setFile((prev) => (prev ? { ...prev, status: "processing" } : prev));
-      startPolling();
-
-      const res = await api.post(`/ai/analyze/${fileId}`);
-      const fixed = normalizeAnalysis(res.data.analysis);
-      if (fixed?.summary) setAnalysis(fixed);
-      toast.success("AI analysis complete! ✨");
-    } catch (err) {
-      setFile((prev) => (prev ? { ...prev, status: "failed" } : prev));
-      stopPolling();
-      const msg = err.response?.data?.error || "Analysis failed.";
-      toast.error(msg);
-      if (msg.includes("little text")) {
-        setTimeout(() => navigate("/upload"), 2000);
+    let alive = true;
+    (async () => {
+      try {
+        setLoadingStats(true);
+        const res = await api.get("/dashboard");
+        if (!alive) return;
+        setStats(res.data?.stats || { totalFiles: 0, totalQuizzes: 0, averageScore: 0 });
+      } catch {
+        toast.error("Could not load stats.");
+      } finally {
+        if (alive) setLoadingStats(false);
       }
-    } finally {
-      setAnalyzing(false);
-      stopPolling();
-    }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // Preset avatar seç
+  const pickPreset = (avatar) => {
+    localStorage.setItem("avatar", avatar);
+    setSelectedAvatar(avatar);
+    toast.success("Avatar updated!");
   };
 
-  const handleGenerateQuiz = async () => {
-    setGeneratingQuiz(true);
+  // Oz şəkilini yüklə
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
     try {
-      await api.post(`/quiz/generate/${fileId}`);
-      toast.success("Quiz generated! 🎯");
-      navigate(`/quiz/${fileId}`);
+      setUploading(true);
+      const res = await api.post("/users/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const url = res.data.avatar;
+      setSelectedAvatar(url);
+      localStorage.setItem("avatar", url);
+      toast.success("Avatar updated!");
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to generate quiz.");
+      toast.error("Upload failed.");
     } finally {
-      setGeneratingQuiz(false);
+      setUploading(false);
+      e.target.value = "";
     }
   };
 
-
-  const handleChatSend = async (e) => {
-  e?.preventDefault();
-
-  const msg = chatInput.trim();
-  if (!msg) return;
-
-  // UI-də user mesajını göstər
-  setChatMessages((prev) => [...prev, { role: "user", content: msg }]);
-  setChatInput("");
-  setChatting(true);
-
-  try {
-    const res = await api.post(`/ai/chat/${fileId}`, { message: msg });
-    const answer = res.data?.answer || "No answer.";
-    setChatMessages((prev) => [...prev, { role: "assistant", content: answer }]);
-  } catch (err) {
-    toast.error(err.response?.data?.error || "Chat failed.");
-    setChatMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: "Sorry — something went wrong. Try again." },
-    ]);
-  } finally {
-    setChatting(false);
-  }
-};
-
-
-  const handleDownloadDocx = async () => {
-  const customName = prompt("Enter file name:", file?.name || "studyai-notes");
-
-  if (!customName) return;
-
-  try {
-    const res = await api.get(`/ai/download/${fileId}`, {
-      responseType: "blob",
-    });
-
-    const blob = new Blob([res.data], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-
-    // təhlükəsizlik üçün ad təmizləmə
-    const safeName = customName
-      .replace(/[\\/:*?"<>|]+/g, "")
-      .trim();
-
-    a.download = `${safeName || "studyai-notes"}.docx`;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    toast.error("Download failed.");
-  }
-};
-
-
-
-  if (loading) {
-    return (
-      <div className="loading-screen" style={{ minHeight: "auto", paddingTop: 80 }}>
-        <div className="spinner" />
-      </div>
-    );
-  }
+  const name   = user?.name || "User";
+  const email  = user?.email || "—";
+  const joined = user?.createdAt ? prettyDate(user.createdAt) : "—";
+  const avg    = Math.round(Number(stats.averageScore || 0));
+  const scoreLabel = avg >= 80 ? "Excellent 🏆" : avg >= 60 ? "Good 👍" : avg > 0 ? "Keep going 💪" : "No data yet";
 
   return (
-    <div style={{ maxWidth: "100%", padding: "0 24px" }}>
-      {/* Header */}
+    <>
+      <style>{css}</style>
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">AI Analysis</h1>
-          <p className="page-subtitle">📄 {file?.name || "Lecture File"}</p>
+          <h1 className="page-title">Profile</h1>
+          <p className="page-subtitle">Account overview</p>
         </div>
-
-        <div className="flex gap-3">
-          <button className="btn btn-secondary" onClick={() => navigate("/upload")}>
-            ← Back
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate("/settings")}>
+            ⚙ Settings
           </button>
-
-          {analysis && (
-            <button
-              className="btn btn-primary"
-              onClick={handleGenerateQuiz}
-              disabled={generatingQuiz}
-            >
-              {generatingQuiz ? "⏳ Generating Quiz..." : "📝 Take Quiz"}
-            </button>
-          )}
+          <button className="btn btn-primary btn-sm" onClick={() => navigate("/upload")}>
+            ↑ Upload
+          </button>
         </div>
       </div>
 
-      {/* Analyze Prompt (if not yet analyzed) */}
-      {!analysis &&
-        !analyzing &&
-        file?.status !== "processing" &&
-        !pollingActive && (
-        <div className="card" style={{ textAlign: "center", padding: "60px 32px" }}>
-          <div style={{ fontSize: 64, marginBottom: 20 }}>🤖</div>
-          <h2 style={{ fontFamily: "Playfair Display", marginBottom: 12 }}>
-            Ready to Analyze This Lecture?
-          </h2>
-          <p className="text-muted mb-6" style={{ maxWidth: 480, margin: "0 auto 24px" }}>
-            Our AI will read your lecture and generate a comprehensive summary, extract key points,
-            and create study questions — all in seconds.
-          </p>
-          <button className="btn btn-primary btn-lg" onClick={handleAnalyze}>
-            🧠 Analyze with AI
+      <div className="profile-grid profile-root">
+
+        {/* ── Left: User card ── */}
+        <div className="profile-card">
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+
+            {/* Avatar — üstünə klik edəndə fayl seç */}
+            <div className="avatar-wrapper" onClick={() => fileInputRef.current?.click()}>
+              <img
+                src={selectedAvatar}
+                alt="avatar"
+                className="profile-avatar-img"
+                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+              />
+              <div className="avatar-overlay">
+                {uploading ? "⏳" : "📷"}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="avatar-upload-input"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            <div>
+              <div className="profile-name">{name}</div>
+              <div className="profile-email">{email}</div>
+              <div className="member-pill">
+                <span className="member-pill-dot" />
+                Active member
+              </div>
+            </div>
+          </div>
+
+          <div className="p-divider" />
+
+          <div className="info-row">
+            <span className="info-label">Member since</span>
+            <span className="info-value">{joined}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Plan</span>
+            <span className="info-value">Free</span>
+          </div>
+
+          <button className="profile-edit-btn" onClick={() => navigate("/settings")}>
+            Edit profile
           </button>
         </div>
-      )}
 
-      {/* Loading Animation */}
-      {!analysis && (analyzing || file?.status === "processing" || pollingActive) && (
-        <div className="card">
-          <div className="ai-loading">
-            <div className="ai-loading-dots">
-              <span />
-              <span />
-              <span />
+        {/* ── Right: Stats card ── */}
+        <div className="profile-card">
+          <div className="section-label">Your stats</div>
+
+          {loadingStats ? (
+            <div style={{ textAlign: "center", padding: 32 }}>
+              <div className="spinner" style={{ margin: "0 auto" }} />
             </div>
-            <h3 style={{ fontFamily: "Playfair Display" }}>Analyzing Your Lecture...</h3>
-            <p className="text-muted text-sm">
-              The AI is reading through your file, extracting knowledge, and preparing your study materials.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Analysis Results */}
-      {analysis && (
-        <>
-          {/* Summary */}
-          <div className="card mb-4">
-            <div className="analysis-section">
-              <div className="analysis-section-title">📖 Summary</div>
-              <p className="summary-text" style={{ whiteSpace: "pre-wrap" }}>
-  {analysis.summary.startsWith("{") 
-    ? (() => { try { return JSON.parse(analysis.summary).summary; } catch { return analysis.summary; } })()
-    : analysis.summary}
-</p>
-              <button
-  className="btn btn-secondary mt-4"
-  onClick={handleDownloadDocx}
->
-  ⬇ Download as DOCX
-</button>
-            </div>
-          </div>
-
-          {/* Key Points */}
-          {analysis.keyPoints.length > 0 && (
-            <div className="card mb-4">
-              <div className="analysis-section">
-                <div className="analysis-section-title">
-                  ⚡ Key Points ({analysis.keyPoints.length})
+          ) : (
+            <>
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-num files">{stats.totalFiles}</div>
+                  <div className="stat-label">Files</div>
                 </div>
-
-                {analysis.keyPoints.map((point, i) => (
-                  <div key={i} className="key-point">
-                    <span className="key-point-num">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span>{point}</span>
-                  </div>
-                ))}
+                <div className="stat-card">
+                  <div className="stat-num quizzes">{stats.totalQuizzes}</div>
+                  <div className="stat-label">Quizzes</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-num score">{avg}%</div>
+                  <div className="stat-label">Avg score</div>
+                </div>
               </div>
-            </div>
+
+              <div className="score-section">
+                <div className="score-header">
+                  <span className="score-pct">{avg}% average</span>
+                  <span className="score-badge">{scoreLabel}</span>
+                </div>
+                <div className="score-bar-bg">
+                  <div className="score-bar-fill" style={{ width: `${avg}%` }} />
+                </div>
+              </div>
+            </>
           )}
 
-          {/* Study Questions */}
-          {analysis.studyQuestions.length > 0 && (
-            <div className="card mb-4">
-              <div className="analysis-section">
-                <div className="analysis-section-title">🤔 Study Questions</div>
-
-                {analysis.studyQuestions.map((q, i) => (
-                  <div key={i} className="study-question">
-                    <strong style={{ color: "var(--mauve)", marginRight: 8 }}>
-                      Q{i + 1}.
-                    </strong>
-                    {q}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-
-          {/* Chat with Lecture */}
-<div className="card mb-4">
-  <div className="analysis-section">
-    <div className="analysis-section-title">💬 Chat with this lecture</div>
-
-    <div
-      style={{
-        background: "var(--surface2)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-sm)",
-        padding: 12,
-        maxHeight: 320,
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      {chatMessages.map((m, idx) => (
-        <div
-          key={idx}
-          style={{
-            alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-            maxWidth: "88%",
-            padding: "10px 12px",
-            borderRadius: 12,
-            background:
-              m.role === "user"
-                ? "rgba(137, 180, 250, 0.18)"
-                : "rgba(203, 166, 247, 0.14)",
-            border: "1px solid var(--border)",
-            color: "var(--text)",
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.55,
-            fontSize: 14,
-          }}
-        >
-          {m.content}
+          <button className="continue-btn" onClick={() => navigate("/upload")}>
+            🚀 Continue studying
+          </button>
         </div>
-      ))}
 
-      {chatting && (
-        <div
-          style={{
-            alignSelf: "flex-start",
-            maxWidth: "88%",
-            padding: "10px 12px",
-            borderRadius: 12,
-            background: "rgba(203, 166, 247, 0.14)",
-            border: "1px solid var(--border)",
-            color: "var(--text)",
-            fontSize: 14,
-          }}
-        >
-          Thinking...
-        </div>
-      )}
-    </div>
+        {/* ── Avatar picker — full width ── */}
+        <div className="profile-card profile-card-full">
+          <div className="section-label">Choose avatar</div>
+          <div className="avatar-grid">
 
-    <form onSubmit={handleChatSend} className="mt-4" style={{ display: "flex", gap: 10 }}>
-      <input
-        value={chatInput}
-        onChange={(e) => setChatInput(e.target.value)}
-        placeholder="Ask a question from the lecture..."
-        disabled={chatting}
-      />
-      <button className="btn btn-primary" type="submit" disabled={chatting}>
-        {chatting ? "..." : "Send"}
-      </button>
-    </form>
-  </div>
-</div>
-
-          {/* CTA to Quiz */}
-          <div
-            className="card"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(137,180,250,0.08), rgba(203,166,247,0.08))",
-              textAlign: "center",
-              padding: "40px 32px",
-            }}
-          >
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
-            <h3 style={{ fontFamily: "Playfair Display", marginBottom: 8 }}>
-              Ready to Test Your Knowledge?
-            </h3>
-            <p className="text-muted mb-4">
-              Take an AI-generated quiz with 12 questions to see how well you understood the material.
-            </p>
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleGenerateQuiz}
-              disabled={generatingQuiz}
+            {/* + öz şəkilini yüklə düyməsi */}
+            <div
+              className="upload-avatar-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload your photo"
             >
-              {generatingQuiz ? "⏳ Generating Quiz..." : "🚀 Start Quiz"}
-            </button>
+              {uploading ? "⏳" : "+"}
+            </div>
+
+            {presetAvatars.map((avatar) => (
+              <button
+                key={avatar}
+                onClick={() => pickPreset(avatar)}
+                className={`avatar-btn ${selectedAvatar === avatar ? "selected" : ""}`}
+              >
+                <img src={avatar} alt="avatar option" />
+              </button>
+            ))}
           </div>
-        </>
-      )}
-    </div>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
+            Click + to upload your own photo · Max 2MB · JPG, PNG, WEBP
+          </p>
+        </div>
+
+      </div>
+    </>
   );
 }
-
