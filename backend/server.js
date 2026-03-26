@@ -51,7 +51,7 @@ const loginLimiter = rateLimit({
 });
 app.use('/api/auth/login', loginLimiter);
 
-app.use("/uploads/avatars", express.static(path.join(__dirname, "uploads/avatars")));
+app.use('/api/users', userRoutes);  // /api/user → /api/users
 app.use('/api/admin', adminRoutes);
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10mb' }));
