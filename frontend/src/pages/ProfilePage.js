@@ -609,7 +609,7 @@ export default function ProfilePage() {
           </div>
 
           <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
-            Click + to upload your own photo · Max 2MB · JPG, PNG, WEBP
+            Click + to upload your own photo · Max 10MB · JPG, PNG, WEBP
           </p>
         </div>
       </div>
