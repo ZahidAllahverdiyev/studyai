@@ -204,25 +204,24 @@ const css = `
   .continue-btn:hover { background: #4338ca; }
 
   .avatar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-  }
-  @media (max-width: 600px) {
-    .avatar-grid { grid-template-columns: repeat(4, 1fr); }
   }
 
   .avatar-btn {
+    width: 48px;
+    height: 48px;
     border-radius: 10px;
-    padding: 6px;
+    padding: 5px;
     cursor: pointer;
     background: var(--surface2);
     border: 1.5px solid transparent;
     transition: transform 0.15s, border-color 0.15s;
-    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
   .avatar-btn:hover { transform: scale(1.05); }
   .avatar-btn.selected {
@@ -230,9 +229,9 @@ const css = `
     background: rgba(129,140,248,0.1);
   }
   .avatar-btn img {
-    width: 100%;
-    aspect-ratio: 1/1;
-    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
     object-fit: cover;
     display: block;
   }
