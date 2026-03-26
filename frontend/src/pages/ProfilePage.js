@@ -380,7 +380,7 @@ export default function ProfilePage() {
     }
   }, [user?.avatar]);
 
-  const displayAvatar = useMemo(() => getAvatarSrc(selectedAvatar), [selectedAvatar]);
+ const displayAvatar = getAvatarSrc(selectedAvatar);
 
   const pickPreset = (avatar) => {
     setSelectedAvatar(avatar);
