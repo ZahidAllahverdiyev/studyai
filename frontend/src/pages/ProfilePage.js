@@ -341,7 +341,7 @@ export default function ProfilePage() {
 
     try {
       setUploading(true);
-      const res = await api.post("/users/avatar", formData, {
+     const res = await api.post("/user/avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const url = res.data.avatar;
