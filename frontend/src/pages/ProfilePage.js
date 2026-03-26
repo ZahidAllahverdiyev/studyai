@@ -420,13 +420,15 @@ export default function ProfilePage() {
       });
 
       const url = res?.data?.avatar;
-      if (!url) {
-        throw new Error("Avatar URL gelmedi");
-      }
+if (!url) {
+  throw new Error("Avatar URL gelmedi");
+}
 
-      setSelectedAvatar(url);
-      localStorage.setItem("avatar", url);
-      toast.success("Avatar updated!");
+alert("LINK: " + "https://studyai-production-af51.up.railway.app" + url);
+
+setSelectedAvatar(url);
+localStorage.setItem("avatar", url);
+toast.success("Avatar updated!");
     } catch (err) {
       console.error("UPLOAD ERROR:", err?.response?.data || err.message);
       toast.error(err?.response?.data?.message || "Upload failed.");
