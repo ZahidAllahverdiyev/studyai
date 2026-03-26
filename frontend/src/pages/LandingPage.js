@@ -5,12 +5,27 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
   const [visible, setVisible] = useState({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [menuOpen, setMenuOpen] = useState(false);
   const observerRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setMenuOpen(false);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -24,11 +39,15 @@ const LandingPage = () => {
       },
       { threshold: 0.15 }
     );
+
     document.querySelectorAll("[data-animate]").forEach((el) => {
       observerRef.current.observe(el);
     });
-    return () => observerRef.current.disconnect();
+
+    return () => observerRef.current?.disconnect();
   }, []);
+
+  const closeMenu = () => setMenuOpen(false);
 
   const styles = {
     root: {
@@ -39,7 +58,7 @@ const LandingPage = () => {
       overflowX: "hidden",
     },
 
-    /* ── NAV ── */
+    /* NAV */
     nav: {
       position: "fixed",
       top: 0,
@@ -49,14 +68,10 @@ const LandingPage = () => {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "18px 60px",
-      background:
-        scrollY > 40
-          ? "rgba(10,11,15,0.92)"
-          : "transparent",
+      padding: isMobile ? "14px 16px" : "18px 60px",
+      background: scrollY > 40 ? "rgba(10,11,15,0.92)" : "transparent",
       backdropFilter: scrollY > 40 ? "blur(14px)" : "none",
-      borderBottom:
-        scrollY > 40 ? "1px solid rgba(255,255,255,0.06)" : "none",
+      borderBottom: scrollY > 40 ? "1px solid rgba(255,255,255,0.06)" : "none",
       transition: "all 0.4s ease",
     },
     navLogo: {
@@ -64,22 +79,24 @@ const LandingPage = () => {
       alignItems: "center",
       gap: 10,
       fontWeight: 700,
-      fontSize: 22,
+      fontSize: isMobile ? 18 : 22,
       color: "#fff",
       textDecoration: "none",
+      zIndex: 102,
     },
     logoIcon: {
-      width: 36,
-      height: 36,
+      width: isMobile ? 30 : 36,
+      height: isMobile ? 30 : 36,
       borderRadius: 10,
       background: "linear-gradient(135deg, #6c63ff, #48c6ef)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 18,
+      fontSize: isMobile ? 15 : 18,
+      flexShrink: 0,
     },
     navLinks: {
-      display: "flex",
+      display: isMobile ? "none" : "flex",
       gap: 32,
       alignItems: "center",
     },
@@ -98,14 +115,63 @@ const LandingPage = () => {
       color: "#fff",
       border: "none",
       borderRadius: 10,
-      padding: "10px 22px",
-      fontSize: 15,
+      padding: isMobile ? "12px 16px" : "10px 22px",
+      fontSize: isMobile ? 14 : 15,
       fontWeight: 600,
       cursor: "pointer",
       transition: "opacity 0.2s, transform 0.2s",
+      width: isMobile ? "100%" : "auto",
+    },
+    mobileMenuButton: {
+      display: isMobile ? "flex" : "none",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 4,
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.08)",
+      background: "rgba(255,255,255,0.04)",
+      cursor: "pointer",
+      zIndex: 102,
+    },
+    mobileBar: {
+      width: 18,
+      height: 2,
+      background: "#fff",
+      borderRadius: 10,
+      transition: "all 0.25s ease",
+    },
+    mobileMenu: {
+      position: "fixed",
+      top: 68,
+      left: 12,
+      right: 12,
+      background: "rgba(10,11,15,0.98)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 18,
+      padding: "14px",
+      display: isMobile && menuOpen ? "flex" : "none",
+      flexDirection: "column",
+      gap: 10,
+      zIndex: 101,
+      boxShadow: "0 18px 40px rgba(0,0,0,0.35)",
+      backdropFilter: "blur(14px)",
+    },
+    mobileMenuLink: {
+      color: "#e8eaf0",
+      background: "rgba(255,255,255,0.03)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: 12,
+      padding: "14px 16px",
+      textAlign: "left",
+      fontSize: 15,
+      fontWeight: 600,
+      cursor: "pointer",
     },
 
-    /* ── HERO ── */
+    /* HERO */
     hero: {
       minHeight: "100vh",
       display: "flex",
@@ -113,7 +179,7 @@ const LandingPage = () => {
       alignItems: "center",
       justifyContent: "center",
       textAlign: "center",
-      padding: "120px 24px 80px",
+      padding: isMobile ? "110px 16px 56px" : "120px 24px 80px",
       position: "relative",
     },
     heroBg: {
@@ -128,7 +194,7 @@ const LandingPage = () => {
       inset: 0,
       backgroundImage:
         "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-      backgroundSize: "60px 60px",
+      backgroundSize: isMobile ? "34px 34px" : "60px 60px",
       pointerEvents: "none",
       maskImage:
         "radial-gradient(ellipse 80% 70% at 50% 50%, black, transparent)",
@@ -140,20 +206,21 @@ const LandingPage = () => {
       background: "rgba(108,99,255,0.15)",
       border: "1px solid rgba(108,99,255,0.35)",
       borderRadius: 99,
-      padding: "6px 16px",
-      fontSize: 13,
+      padding: isMobile ? "6px 12px" : "6px 16px",
+      fontSize: isMobile ? 11 : 13,
       color: "#a89dff",
       fontWeight: 600,
-      marginBottom: 28,
+      marginBottom: isMobile ? 22 : 28,
       animation: "fadeInDown 0.7s ease both",
     },
     heroTitle: {
-      fontSize: "clamp(42px, 7vw, 80px)",
+      fontSize: isMobile ? "clamp(34px, 11vw, 46px)" : "clamp(42px, 7vw, 80px)",
       fontWeight: 800,
-      lineHeight: 1.1,
+      lineHeight: 1.08,
       letterSpacing: "-0.03em",
-      marginBottom: 24,
+      marginBottom: isMobile ? 18 : 24,
       animation: "fadeInUp 0.8s ease 0.1s both",
+      maxWidth: 900,
     },
     heroGradText: {
       background: "linear-gradient(135deg, #6c63ff 0%, #48c6ef 100%)",
@@ -162,18 +229,22 @@ const LandingPage = () => {
       backgroundClip: "text",
     },
     heroSub: {
-      fontSize: "clamp(16px, 2vw, 20px)",
+      fontSize: isMobile ? 15 : "clamp(16px, 2vw, 20px)",
       color: "rgba(232,234,240,0.6)",
-      maxWidth: 560,
+      maxWidth: isMobile ? 340 : 560,
       lineHeight: 1.7,
-      marginBottom: 44,
+      marginBottom: isMobile ? 30 : 44,
       animation: "fadeInUp 0.8s ease 0.2s both",
     },
     heroButtons: {
       display: "flex",
+      flexDirection: isMobile ? "column" : "row",
       gap: 14,
       justifyContent: "center",
+      alignItems: "center",
       flexWrap: "wrap",
+      width: isMobile ? "100%" : "auto",
+      maxWidth: isMobile ? 340 : "none",
       animation: "fadeInUp 0.8s ease 0.3s both",
     },
     btnPrimary: {
@@ -181,37 +252,45 @@ const LandingPage = () => {
       color: "#fff",
       border: "none",
       borderRadius: 12,
-      padding: "15px 36px",
+      padding: isMobile ? "15px 18px" : "15px 36px",
       fontSize: 16,
       fontWeight: 700,
       cursor: "pointer",
       transition: "transform 0.2s, box-shadow 0.2s",
       boxShadow: "0 8px 32px rgba(108,99,255,0.35)",
+      width: isMobile ? "100%" : "auto",
     },
     btnSecondary: {
       background: "rgba(255,255,255,0.06)",
       color: "#e8eaf0",
       border: "1px solid rgba(255,255,255,0.12)",
       borderRadius: 12,
-      padding: "15px 36px",
+      padding: isMobile ? "15px 18px" : "15px 36px",
       fontSize: 16,
       fontWeight: 600,
       cursor: "pointer",
       transition: "background 0.2s",
+      width: isMobile ? "100%" : "auto",
     },
     heroStats: {
-      display: "flex",
-      gap: 48,
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(3, auto)",
+      gap: isMobile ? 18 : 48,
       justifyContent: "center",
-      marginTop: 72,
+      marginTop: isMobile ? 40 : 72,
       animation: "fadeInUp 0.8s ease 0.4s both",
-      flexWrap: "wrap",
+      width: isMobile ? "100%" : "auto",
+      maxWidth: isMobile ? 340 : "none",
     },
     statItem: {
       textAlign: "center",
+      background: isMobile ? "rgba(255,255,255,0.03)" : "transparent",
+      border: isMobile ? "1px solid rgba(255,255,255,0.06)" : "none",
+      borderRadius: isMobile ? 16 : 0,
+      padding: isMobile ? "16px 14px" : 0,
     },
     statNum: {
-      fontSize: 32,
+      fontSize: isMobile ? 24 : 32,
       fontWeight: 800,
       background: "linear-gradient(135deg, #6c63ff, #48c6ef)",
       WebkitBackgroundClip: "text",
@@ -225,9 +304,9 @@ const LandingPage = () => {
       marginTop: 4,
     },
 
-    /* ── SECTIONS ── */
+    /* SECTIONS */
     section: {
-      padding: "100px 24px",
+      padding: isMobile ? "70px 16px" : "100px 24px",
       maxWidth: 1100,
       margin: "0 auto",
     },
@@ -240,46 +319,48 @@ const LandingPage = () => {
       marginBottom: 12,
     },
     sectionTitle: {
-      fontSize: "clamp(28px, 4vw, 44px)",
+      fontSize: isMobile ? "clamp(24px, 8vw, 34px)" : "clamp(28px, 4vw, 44px)",
       fontWeight: 800,
       letterSpacing: "-0.02em",
       marginBottom: 16,
       lineHeight: 1.2,
     },
     sectionSub: {
-      fontSize: 17,
+      fontSize: isMobile ? 15 : 17,
       color: "rgba(232,234,240,0.55)",
       maxWidth: 520,
       lineHeight: 1.7,
-      marginBottom: 64,
+      marginBottom: isMobile ? 34 : 64,
     },
 
-    /* ── FEATURES ── */
+    /* FEATURES */
     featuresGrid: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      gap: 20,
+      gridTemplateColumns: isMobile
+        ? "1fr"
+        : "repeat(auto-fit, minmax(300px, 1fr))",
+      gap: isMobile ? 16 : 20,
     },
     featureCard: {
       background: "rgba(255,255,255,0.03)",
       border: "1px solid rgba(255,255,255,0.07)",
       borderRadius: 20,
-      padding: "32px",
+      padding: isMobile ? "24px 18px" : "32px",
       transition: "transform 0.3s, border-color 0.3s",
       cursor: "default",
     },
     featureIcon: {
-      width: 52,
-      height: 52,
+      width: isMobile ? 46 : 52,
+      height: isMobile ? 46 : 52,
       borderRadius: 14,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 24,
+      fontSize: isMobile ? 22 : 24,
       marginBottom: 20,
     },
     featureTitle: {
-      fontSize: 18,
+      fontSize: isMobile ? 17 : 18,
       fontWeight: 700,
       marginBottom: 10,
     },
@@ -289,26 +370,28 @@ const LandingPage = () => {
       lineHeight: 1.65,
     },
 
-    /* ── HOW IT WORKS ── */
+    /* HOW IT WORKS */
     stepsWrap: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-      gap: 24,
+      gridTemplateColumns: isMobile
+        ? "1fr"
+        : "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: isMobile ? 16 : 24,
       position: "relative",
     },
     stepCard: {
       background: "rgba(255,255,255,0.02)",
       border: "1px solid rgba(255,255,255,0.07)",
       borderRadius: 20,
-      padding: "36px 28px",
+      padding: isMobile ? "24px 18px" : "36px 28px",
       position: "relative",
       overflow: "hidden",
     },
     stepNum: {
-      fontSize: 72,
+      fontSize: isMobile ? 54 : 72,
       fontWeight: 900,
       position: "absolute",
-      top: -10,
+      top: isMobile ? 0 : -10,
       right: 16,
       color: "rgba(108,99,255,0.08)",
       lineHeight: 1,
@@ -316,11 +399,11 @@ const LandingPage = () => {
       fontFamily: "monospace",
     },
     stepIcon: {
-      fontSize: 32,
+      fontSize: isMobile ? 28 : 32,
       marginBottom: 16,
     },
     stepTitle: {
-      fontSize: 18,
+      fontSize: isMobile ? 17 : 18,
       fontWeight: 700,
       marginBottom: 10,
     },
@@ -330,66 +413,78 @@ const LandingPage = () => {
       lineHeight: 1.65,
     },
 
-    /* ── CTA SECTION ── */
+    /* CTA */
     ctaWrap: {
       background:
         "linear-gradient(135deg, rgba(108,99,255,0.15) 0%, rgba(72,198,239,0.1) 100%)",
       border: "1px solid rgba(108,99,255,0.2)",
-      borderRadius: 28,
-      padding: "72px 48px",
+      borderRadius: isMobile ? 22 : 28,
+      padding: isMobile ? "38px 18px" : "72px 48px",
       textAlign: "center",
       position: "relative",
       overflow: "hidden",
-      margin: "0 24px 100px",
+      margin: isMobile ? "0 16px 70px" : "0 24px 100px",
     },
     ctaGlow: {
       position: "absolute",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      width: 500,
-      height: 300,
+      width: isMobile ? 280 : 500,
+      height: isMobile ? 180 : 300,
       background:
         "radial-gradient(ellipse, rgba(108,99,255,0.2) 0%, transparent 70%)",
       pointerEvents: "none",
     },
     ctaTitle: {
-      fontSize: "clamp(28px, 4vw, 44px)",
+      fontSize: isMobile ? "clamp(24px, 8vw, 34px)" : "clamp(28px, 4vw, 44px)",
       fontWeight: 800,
       letterSpacing: "-0.02em",
       marginBottom: 16,
       position: "relative",
     },
     ctaSub: {
-      fontSize: 17,
+      fontSize: isMobile ? 15 : 17,
       color: "rgba(232,234,240,0.6)",
-      marginBottom: 40,
+      marginBottom: 28,
       position: "relative",
+      lineHeight: 1.7,
     },
     ctaButtons: {
       display: "flex",
+      flexDirection: isMobile ? "column" : "row",
       gap: 14,
       justifyContent: "center",
+      alignItems: "center",
       flexWrap: "wrap",
       position: "relative",
+      width: isMobile ? "100%" : "auto",
     },
 
-    /* ── FOOTER ── */
+    /* FOOTER */
     footer: {
       borderTop: "1px solid rgba(255,255,255,0.06)",
-      padding: "32px 60px",
+      padding: isMobile ? "24px 16px 34px" : "32px 60px",
       display: "flex",
+      flexDirection: isMobile ? "column" : "row",
       alignItems: "center",
       justifyContent: "space-between",
       flexWrap: "wrap",
-      gap: 16,
+      gap: isMobile ? 14 : 16,
+      textAlign: "center",
     },
     footerText: {
       fontSize: 14,
       color: "rgba(232,234,240,0.35)",
     },
+    footerLinks: {
+      display: "flex",
+      gap: isMobile ? 12 : 24,
+      flexWrap: "wrap",
+      justifyContent: "center",
+    },
 
-    /* ── ANIMATE ── */
+    /* ANIMATE */
     animateHidden: {
       opacity: 0,
       transform: "translateY(30px)",
@@ -468,81 +563,169 @@ const LandingPage = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { overflow-x: hidden; }
+
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(108,99,255,0.45) !important; }
-        .btn-secondary:hover { background: rgba(255,255,255,0.1) !important; }
-        .nav-link:hover { color: #fff !important; }
-        .nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
-        .feature-card:hover { transform: translateY(-4px); border-color: rgba(108,99,255,0.3) !important; }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 40px rgba(108,99,255,0.45) !important;
+        }
+
+        .btn-secondary:hover {
+          background: rgba(255,255,255,0.1) !important;
+        }
+
+        .nav-link:hover {
+          color: #fff !important;
+        }
+
+        .nav-cta:hover {
+          opacity: 0.88;
+          transform: translateY(-1px);
+        }
+
+        .feature-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(108,99,255,0.3) !important;
+        }
       `}</style>
 
       <div style={styles.root}>
-        {/* NAV */}
         <nav style={styles.nav}>
           <div style={styles.navLogo}>
             <div style={styles.logoIcon}>✦</div>
             StudyAI
           </div>
-          <div style={styles.navLinks}>
+
+          {!isMobile && (
+            <div style={styles.navLinks}>
+              <button
+                className="nav-link"
+                style={styles.navLink}
+                onClick={() =>
+                  document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                Features
+              </button>
+              <button
+                className="nav-link"
+                style={styles.navLink}
+                onClick={() =>
+                  document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
+                How it works
+              </button>
+              <button
+                className="nav-link"
+                style={styles.navLink}
+                onClick={() => navigate("/login")}
+              >
+                Sign in
+              </button>
+              <button
+                className="nav-cta"
+                style={styles.navCta}
+                onClick={() => navigate("/register")}
+              >
+                Get started free
+              </button>
+            </div>
+          )}
+
+          {isMobile && (
             <button
-              className="nav-link"
-              style={styles.navLink}
-              onClick={() =>
-                document
-                  .getElementById("features")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              aria-label="Toggle menu"
+              style={styles.mobileMenuButton}
+              onClick={() => setMenuOpen((prev) => !prev)}
             >
-              Features
+              <span
+                style={{
+                  ...styles.mobileBar,
+                  transform: menuOpen ? "translateY(6px) rotate(45deg)" : "none",
+                }}
+              />
+              <span
+                style={{
+                  ...styles.mobileBar,
+                  opacity: menuOpen ? 0 : 1,
+                }}
+              />
+              <span
+                style={{
+                  ...styles.mobileBar,
+                  transform: menuOpen ? "translateY(-6px) rotate(-45deg)" : "none",
+                }}
+              />
             </button>
-            <button
-              className="nav-link"
-              style={styles.navLink}
-              onClick={() =>
-                document
-                  .getElementById("how")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              How it works
-            </button>
-            <button
-              className="nav-link"
-              style={styles.navLink}
-              onClick={() => navigate("/login")}
-            >
-              Sign in
-            </button>
-            <button
-              className="nav-cta"
-              style={styles.navCta}
-              onClick={() => navigate("/register")}
-            >
-              Get started free
-            </button>
-          </div>
+          )}
         </nav>
 
-        {/* HERO */}
+        <div style={styles.mobileMenu}>
+          <button
+            style={styles.mobileMenuLink}
+            onClick={() => {
+              document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+              closeMenu();
+            }}
+          >
+            Features
+          </button>
+          <button
+            style={styles.mobileMenuLink}
+            onClick={() => {
+              document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+              closeMenu();
+            }}
+          >
+            How it works
+          </button>
+          <button
+            style={styles.mobileMenuLink}
+            onClick={() => {
+              navigate("/login");
+              closeMenu();
+            }}
+          >
+            Sign in
+          </button>
+          <button
+            className="nav-cta"
+            style={styles.navCta}
+            onClick={() => {
+              navigate("/register");
+              closeMenu();
+            }}
+          >
+            Get started free
+          </button>
+        </div>
+
         <section style={styles.hero}>
           <div style={styles.heroBg} />
           <div style={styles.heroGrid} />
           <div style={styles.badge}>✦ AI-Powered Learning Platform</div>
+
           <h1 style={styles.heroTitle}>
-            Study Smarter,{" "}
-            <span style={styles.heroGradText}>Not Harder</span>
+            Study Smarter, <span style={styles.heroGradText}>Not Harder</span>
           </h1>
+
           <p style={styles.heroSub}>
             Upload your lecture notes and let AI generate personalized quizzes,
             track your progress, and help you ace every exam.
           </p>
+
           <div style={styles.heroButtons}>
             <button
               className="btn-primary"
@@ -559,6 +742,7 @@ const LandingPage = () => {
               Sign in
             </button>
           </div>
+
           <div style={styles.heroStats}>
             {[
               ["PDF & DOCX", "Supported"],
@@ -573,14 +757,9 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* FEATURES */}
         <div id="features">
           <div style={styles.section}>
-            <div
-              id="feat-header"
-              data-animate
-              style={animStyle("feat-header")}
-            >
+            <div id="feat-header" data-animate style={animStyle("feat-header")}>
               <div style={styles.sectionLabel}>Features</div>
               <h2 style={styles.sectionTitle}>
                 Everything you need to{" "}
@@ -591,6 +770,7 @@ const LandingPage = () => {
                 to transform how you learn.
               </p>
             </div>
+
             <div style={styles.featuresGrid}>
               {features.map((f, i) => (
                 <div
@@ -604,9 +784,7 @@ const LandingPage = () => {
                     transitionDelay: `${i * 0.08}s`,
                   }}
                 >
-                  <div
-                    style={{ ...styles.featureIcon, background: f.color }}
-                  >
+                  <div style={{ ...styles.featureIcon, background: f.color }}>
                     {f.icon}
                   </div>
                   <div style={styles.featureTitle}>{f.title}</div>
@@ -617,7 +795,6 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* HOW IT WORKS */}
         <div id="how">
           <div style={styles.section}>
             <div id="how-header" data-animate style={animStyle("how-header")}>
@@ -630,6 +807,7 @@ const LandingPage = () => {
                 Getting started takes less than a minute. No setup required.
               </p>
             </div>
+
             <div style={styles.stepsWrap}>
               {steps.map((s, i) => (
                 <div
@@ -652,7 +830,6 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* CTA */}
         <div
           id="cta-section"
           data-animate
@@ -660,8 +837,7 @@ const LandingPage = () => {
         >
           <div style={styles.ctaGlow} />
           <h2 style={styles.ctaTitle}>
-            Ready to transform{" "}
-            <span style={styles.heroGradText}>how you study?</span>
+            Ready to transform <span style={styles.heroGradText}>how you study?</span>
           </h2>
           <p style={styles.ctaSub}>
             Join students who are already learning smarter with StudyAI.
@@ -684,18 +860,24 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* FOOTER */}
         <footer style={styles.footer}>
-          <div style={{ ...styles.navLogo, fontSize: 18 }}>
-            <div style={{ ...styles.logoIcon, width: 28, height: 28, fontSize: 14 }}>
+          <div style={{ ...styles.navLogo, fontSize: isMobile ? 17 : 18 }}>
+            <div
+              style={{
+                ...styles.logoIcon,
+                width: isMobile ? 26 : 28,
+                height: isMobile ? 26 : 28,
+                fontSize: isMobile ? 13 : 14,
+              }}
+            >
               ✦
             </div>
             StudyAI
           </div>
-          <div style={styles.footerText}>
-            © 2026 StudyAI. Learn Smarter.
-          </div>
-          <div style={{ display: "flex", gap: 24 }}>
+
+          <div style={styles.footerText}>© 2026 StudyAI. Learn Smarter.</div>
+
+          <div style={styles.footerLinks}>
             <button
               className="nav-link"
               style={{ ...styles.navLink, fontSize: 14 }}
