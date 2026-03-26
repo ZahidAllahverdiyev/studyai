@@ -274,7 +274,9 @@ const css = `
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 20px;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--subtext);
     transition: border-color 0.15s, background 0.15s;
   }
   .upload-avatar-btn:hover {
