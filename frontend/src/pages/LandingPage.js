@@ -52,8 +52,8 @@ const LandingPage = () => {
   const styles = {
     root: {
       fontFamily: "'Sora', 'Segoe UI', sans-serif",
-      background: "#0a0b0f",
-      color: "#e8eaf0",
+      background: "var(--bg)",
+      color: "var(--text)",
       minHeight: "100vh",
       overflowX: "hidden",
     },
@@ -728,15 +728,13 @@ const LandingPage = () => {
 
           <div style={styles.heroButtons}>
             <button
-              className="btn-primary"
-              style={styles.btnPrimary}
+              className="btn-primary btn-lg"
               onClick={() => navigate("/register")}
             >
               Start for free →
             </button>
             <button
-              className="btn-secondary"
-              style={styles.btnSecondary}
+              className="btn-secondary btn-lg"
               onClick={() => navigate("/login")}
             >
               Sign in
@@ -844,15 +842,13 @@ const LandingPage = () => {
           </p>
           <div style={styles.ctaButtons}>
             <button
-              className="btn-primary"
-              style={styles.btnPrimary}
+              className="btn-primary btn-lg"
               onClick={() => navigate("/register")}
             >
               Create free account →
             </button>
             <button
-              className="btn-secondary"
-              style={styles.btnSecondary}
+              className="btn-secondary btn-lg"
               onClick={() => navigate("/login")}
             >
               Sign in
