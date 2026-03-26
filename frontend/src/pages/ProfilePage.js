@@ -22,7 +22,7 @@ function prettyDate(d) {
 
 function getAvatarSrc(avatar) {
   if (!avatar) return DEFAULT_AVATAR;
-  if (avatar.startsWith("/uploads/")) return `${API_BASE_URL}${avatar}`;
+  if (avatar.startsWith("/uploads/")) return `${API_BASE_URL}${avatar}?t=${Date.now()}`;
   return avatar;
 }
 
@@ -399,8 +399,8 @@ export default function ProfilePage() {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Max 2MB olar");
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Max 10MB");
       e.target.value = "";
       return;
     }
