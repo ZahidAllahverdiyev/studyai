@@ -656,7 +656,7 @@ const LandingPage = () => {
         <section style={styles.hero}>
           <div style={styles.heroBg} />
           <div style={styles.heroGrid} />
-          <div style={styles.badge}>✦ Product-like AI learning</div>
+          <div style={styles.badge}>✦ AI-Powered Learning Platform</div>
 
           <h1 style={styles.heroTitle}>
             Study Smarter,{" "}
