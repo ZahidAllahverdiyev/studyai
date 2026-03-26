@@ -2,6 +2,7 @@
 // src/pages/DashboardPage.js
 // ============================================================
 
+const isMobile = window.innerWidth <= 768;
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -139,20 +140,38 @@ export default function DashboardPage() {
       <div className="dash-root">
 
         {/* Header */}
-        <div className="page-header">
+        <div
+  className="page-header"
+  style={{
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: isMobile ? 'stretch' : 'flex-start'
+  }}
+>
           <div>
             <h1 className="page-title">
               {getBakuGreeting()}, {user?.name?.split(' ')[0]} 👋
             </h1>
             <p className="page-subtitle">Here's your learning progress at a glance.</p>
           </div>
-          <Link to="/upload" className="dash-upload-btn">
+          <Link
+  to="/upload"
+  className="dash-upload-btn"
+  style={{
+    width: isMobile ? '100%' : 'auto',
+    justifyContent: 'center'
+  }}
+>
             ↑ Upload Lecture
           </Link>
         </div>
 
         {/* Stats */}
-        <div className="card-grid mb-6" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div
+  className="card-grid mb-6"
+  style={{
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)'
+  }}
+>
           <div className="stat-card dash-stat-card">
             <div className="stat-icon" style={{ background: 'rgba(108,99,255,0.15)' }}>📄</div>
             <div>
