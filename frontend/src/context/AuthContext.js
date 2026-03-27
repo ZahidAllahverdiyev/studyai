@@ -20,7 +20,11 @@ export function AuthProvider({ children }) {
     // Verify token is still valid on app load
     const token = localStorage.getItem('token');
     if (token) {
-      api.get('/auth/me')
+      api.get('/auth/me', {
+  headers: {
+    'Cache-Control': 'no-cache'
+  }
+})
         .then(res => setUser(res.data.user))
         .catch(() => {
           localStorage.removeItem('token');

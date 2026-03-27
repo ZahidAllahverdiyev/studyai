@@ -5,7 +5,12 @@ const baseURL =
     ? `${process.env.REACT_APP_API_URL}/api`
     : "http://localhost:5000/api";
 
-const api = axios.create({ baseURL });
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api', // səndə nədirsə
+  headers: {
+    'Cache-Control': 'no-cache'
+  }
+});
 
 // ✅ Bunu əlavə et — hər sorğuya JWT token əlavə edir
 api.interceptors.request.use((config) => {
