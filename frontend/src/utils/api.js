@@ -6,13 +6,12 @@ const baseURL =
     : "http://localhost:5000/api";
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // səndə nədirsə
+  baseURL, // ✅ artıq istifadə olunur
   headers: {
-    'Cache-Control': 'no-cache'
-  }
+    "Cache-Control": "no-cache",
+  },
 });
 
-// ✅ Bunu əlavə et — hər sorğuya JWT token əlavə edir
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {

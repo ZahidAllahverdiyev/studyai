@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
@@ -424,7 +424,7 @@ if (!url) {
   throw new Error("Avatar URL gelmedi");
 }
 
-alert("LINK: " + "https://studyai-production-af51.up.railway.app" + url);
+alert("LINK: https://studyai-production-af51.up.railway.app");
 
 setSelectedAvatar(url);
 localStorage.setItem("avatar", url);
