@@ -76,7 +76,7 @@ export default function UploadPage() {
       });
 
       toast.success('File uploaded! Redirecting to analysis...');
-      setTimeout(() => navigate(`/analysis/${res.data.file.id}`), 1000);
+      setTimeout(() => navigate(`/analysis/${res.data.file._id}`), 1000);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Upload failed.');
     } finally {
