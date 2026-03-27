@@ -1,720 +1,499 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+// ============================================================
+// src/pages/AnalysisPage.js - Shows AI analysis of a file
+// ============================================================
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 
-const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap');
-
-  .an-root * { box-sizing: border-box; }
-  .an-root { font-family: 'DM Sans', sans-serif; }
-
-  /* ── Grid ── */
-  .an-grid {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 16px;
-    align-items: start;
-  }
-  @media (max-width: 900px) {
-    .an-grid { grid-template-columns: 1fr; }
-  }
-
-  /* ── Cards ── */
-  .an-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-  }
-
-  /* ── File list ── */
-  .an-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-  }
-
-  .an-file-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: background 0.15s, border-color 0.15s;
-    margin-bottom: 6px;
-  }
-  .an-file-item:hover { background: var(--surface2); }
-  .an-file-item.active {
-    background: rgba(129,140,248,0.1);
-    border-color: rgba(129,140,248,0.4);
-  }
-
-  .an-file-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: rgba(129,140,248,0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  .an-file-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .an-file-date {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  .an-status-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-left: auto;
-  }
-  .an-status-dot.completed { background: #34d399; }
-  .an-status-dot.processing { background: #f59e0b; }
-  .an-status-dot.pending { background: var(--border); }
-  .an-status-dot.failed { background: #f87171; }
-
-  /* ── Empty state ── */
-  .an-empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-    font-size: 13px;
-  }
-
-  /* ── Main panel ── */
-  .an-main-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    text-align: center;
-    color: var(--muted);
-    gap: 12px;
-  }
-
-  .an-main-empty-icon {
-    font-size: 48px;
-    opacity: 0.4;
-  }
-
-  .an-main-empty-text {
-    font-size: 15px;
-    color: var(--subtext);
-  }
-
-  /* ── File header ── */
-  .an-file-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .an-file-title {
-    font-family: 'Sora', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.3px;
-  }
-
-  .an-file-subtitle {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  .an-btn-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .an-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    font-family: 'DM Sans', sans-serif;
-    transition: opacity 0.15s, background 0.15s;
-  }
-  .an-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .an-btn-primary { background: #4f46e5; color: #fff; }
-  .an-btn-primary:hover:not(:disabled) { background: #4338ca; }
-  .an-btn-secondary {
-    background: transparent;
-    border: 0.5px solid var(--border);
-    color: var(--text);
-  }
-  .an-btn-secondary:hover:not(:disabled) { background: var(--surface2); }
-  .an-btn-green { background: rgba(52,211,153,0.15); color: #34d399; }
-  .an-btn-green:hover:not(:disabled) { background: rgba(52,211,153,0.25); }
-
-  /* ── Tabs ── */
-  .an-tabs {
-    display: flex;
-    gap: 4px;
-    border-bottom: 0.5px solid var(--border);
-    margin-bottom: 18px;
-  }
-
-  .an-tab {
-    padding: 8px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    font-family: 'DM Sans', sans-serif;
-    transition: color 0.15s;
-  }
-  .an-tab:hover { color: var(--text); }
-  .an-tab.active {
-    color: #818cf8;
-    border-bottom-color: #818cf8;
-  }
-
-  /* ── Summary ── */
-  .an-summary-text {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.75;
-    white-space: pre-wrap;
-  }
-
-  /* ── Key points ── */
-  .an-keypoint {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 10px 0;
-    border-bottom: 0.5px solid var(--border);
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-  }
-  .an-keypoint:last-child { border-bottom: none; }
-
-  .an-keypoint-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #818cf8;
-    flex-shrink: 0;
-    margin-top: 6px;
-  }
-
-  /* ── Study questions ── */
-  .an-question {
-    background: var(--surface2);
-    border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-    border-left: 3px solid #818cf8;
-  }
-
-  /* ── Chat ── */
-  .an-chat-messages {
-    min-height: 200px;
-    max-height: 380px;
-    overflow-y: auto;
-    margin-bottom: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .an-msg {
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.6;
-    max-width: 85%;
-  }
-
-  .an-msg-user {
-    background: #4f46e5;
-    color: #fff;
-    align-self: flex-end;
-    border-bottom-right-radius: 4px;
-  }
-
-  .an-msg-ai {
-    background: var(--surface2);
-    color: var(--text);
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-  }
-
-  .an-msg-loading {
-    background: var(--surface2);
-    color: var(--muted);
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
-    font-style: italic;
-  }
-
-  .an-chat-input-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .an-chat-input {
-    flex: 1;
-    padding: 10px 14px;
-    border-radius: 10px;
-    border: 0.5px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .an-chat-input:focus { border-color: #818cf8; }
-
-  /* ── Processing state ── */
-  .an-processing {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    gap: 14px;
-    color: var(--subtext);
-  }
-
-  .an-spinner-lg {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top-color: #818cf8;
-    border-radius: 50%;
-    animation: an-spin 0.8s linear infinite;
-  }
-
-  @keyframes an-spin { to { transform: rotate(360deg); } }
-
-  .an-divider {
-    height: 0.5px;
-    background: var(--border);
-    margin: 16px 0;
-  }
-
-  .an-no-analysis {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 50px 20px;
-    gap: 12px;
-    text-align: center;
-  }
-
-  .an-no-analysis-icon { font-size: 36px; opacity: 0.5; }
-  .an-no-analysis-text { font-size: 14px; color: var(--subtext); }
-`;
-
-function prettyDate(d) {
-  if (!d) return "";
-  try {
-    return new Date(d).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
-    });
-  } catch { return ""; }
-}
-
-function fileIcon(name = "") {
-  const ext = name.split(".").pop()?.toLowerCase();
-  if (ext === "pdf") return "📄";
-  if (["doc", "docx"].includes(ext)) return "📝";
-  if (["ppt", "pptx"].includes(ext)) return "📊";
-  if (["txt", "md"].includes(ext)) return "📃";
-  return "📁";
-}
-
 export default function AnalysisPage() {
+  const { fileId } = useParams();
   const navigate = useNavigate();
 
-  const [files, setFiles] = useState([]);
-  const [loadingFiles, setLoadingFiles] = useState(true);
-  const [selectedFile, setSelectedFile] = useState(null);
-
-  const [analyzing, setAnalyzing] = useState(false);
+  const [file, setFile] = useState(null);
+  const [chatMessages, setChatMessages] = useState([
+  { role: "assistant", content: "Ask me anything about this lecture 👇" },
+]);
+const [chatInput, setChatInput] = useState("");
+const [chatting, setChatting] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-  const [activeTab, setActiveTab] = useState("summary");
+  const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
 
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
+  const isMountedRef = useRef(true);
+  const pollingRef = useRef(null);
+  const [pollingActive, setPollingActive] = useState(false);
 
-  const chatEndRef = useRef(null);
+  const normalizeAnalysis = useCallback((raw) => {
+    if (!raw) return null;
 
-  // Faylları yüklə
-  useEffect(() => {
-    (async () => {
+    let a = raw;
+
+    // 1) analysis özü string ola bilər
+    if (typeof a === "string") {
+      try { a = JSON.parse(a); } 
+      catch { return { summary: a, keyPoints: [], studyQuestions: [] }; }
+    }
+
+    // 2) summary içində JSON string ola bilər
+if (a?.summary && typeof a.summary === "string") {
+  const s = a.summary
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  if (s.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(s);
+      if (parsed.summary) a = { ...a, ...parsed };
+    } catch {}
+  }
+}
+
+   // 3) studyQuestions yoxdursa amma summary içindədirsə
+if ((!a.studyQuestions || a.studyQuestions.length === 0) && a?.summary) {
+  const s = a.summary
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  if (s.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(s);
+      if (parsed.studyQuestions) a.studyQuestions = parsed.studyQuestions;
+      if (parsed.summary) a.summary = parsed.summary;
+    } catch {}
+  }
+}
+
+    // 4) studyQuestions string ola bilər
+    if (a?.studyQuestions && typeof a.studyQuestions === "string") {
       try {
-        setLoadingFiles(true);
-        const res = await api.get("/files");
-        setFiles(res.data?.files || res.data || []);
+        a.studyQuestions = JSON.parse(a.studyQuestions);
       } catch {
-        toast.error("Could not load files.");
-      } finally {
-        setLoadingFiles(false);
+        a.studyQuestions = a.studyQuestions
+          .split("\n")
+          .map((x) => x.replace(/^\s*(Q?\d+[).:-]\s*)/i, "").trim())
+          .filter(Boolean);
       }
-    })();
+    }
+
+    // 5) keyPoints string ola bilər
+    if (a?.keyPoints && typeof a.keyPoints === "string") {
+      try {
+        a.keyPoints = JSON.parse(a.keyPoints);
+      } catch {
+        a.keyPoints = a.keyPoints
+          .split("\n")
+          .map((x) => x.replace(/^\s*[-•\d.).:-]+\s*/, "").trim())
+          .filter(Boolean);
+      }
+    }
+
+    return {
+      summary: a.summary || "",
+      keyPoints: Array.isArray(a.keyPoints) ? a.keyPoints : [],
+      studyQuestions: Array.isArray(a.studyQuestions) ? a.studyQuestions : [],
+    };
   }, []);
 
-  // Fayl seçiləndə mövcud analizi yüklə
-  const selectFile = async (file) => {
-    setSelectedFile(file);
-    setAnalysis(null);
-    setChatMessages([]);
-    setActiveTab("summary");
-
-    if (file.status === "completed") {
-      try {
-        const res = await api.get(`/ai/analysis/${file._id}`);
-        if (res.data?.analysis) {
-          setAnalysis(res.data.analysis);
-        }
-      } catch {
-        // analiz yoxdur, boş qalacaq
-      }
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
     }
-  };
+    setPollingActive(false);
+  }, []);
 
-  // Analiz et
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    setPollingActive(true);
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/ai/analysis/${fileId}`);
+        if (!isMountedRef.current) return;
+
+        const status = res.data?.status;
+        setFile({ name: res.data?.fileName, status });
+
+        const fixed = normalizeAnalysis(res.data?.analysis);
+        if (fixed?.summary) setAnalysis(fixed);
+
+        if (status === "completed" || status === "failed") {
+          stopPolling();
+        }
+      } catch (err) {
+        // Keep polling.
+      }
+    }, 2500);
+  }, [fileId, normalizeAnalysis, stopPolling]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    let isMounted = true;
+
+    api
+      .get(`/ai/analysis/${fileId}`)
+      .then((res) => {
+        if (!isMounted) return;
+
+        setFile({ name: res.data.fileName, status: res.data.status });
+
+        const fixed = normalizeAnalysis(res.data.analysis);
+        if (fixed?.summary) setAnalysis(fixed);
+
+        if (res.data?.status === "processing") startPolling();
+        else stopPolling();
+      })
+      .catch(() => toast.error("File not found"))
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+      isMountedRef.current = false;
+      stopPolling();
+    };
+  }, [fileId, normalizeAnalysis, startPolling, stopPolling]);
+
   const handleAnalyze = async () => {
-    if (!selectedFile) return;
+    setAnalyzing(true);
     try {
-      setAnalyzing(true);
-      setAnalysis(null);
-      toast.loading("Analyzing...", { id: "analyze" });
+      // Mark status in UI immediately; backend will set real status shortly after.
+      setFile((prev) => (prev ? { ...prev, status: "processing" } : prev));
+      startPolling();
 
-      const res = await api.post(`/ai/analyze/${selectedFile._id}`);
-      setAnalysis(res.data.analysis);
-
-      // Fayl siyahısında statusu yenilə
-      setFiles(prev =>
-        prev.map(f => f._id === selectedFile._id ? { ...f, status: "completed" } : f)
-      );
-      setSelectedFile(prev => ({ ...prev, status: "completed" }));
-
-      toast.success("Analysis complete!", { id: "analyze" });
-      setActiveTab("summary");
+      const res = await api.post(`/ai/analyze/${fileId}`);
+      const fixed = normalizeAnalysis(res.data.analysis);
+      if (fixed?.summary) setAnalysis(fixed);
+      toast.success("AI analysis complete! ✨");
     } catch (err) {
-      const msg = err?.response?.data?.error || "Analysis failed.";
-      toast.error(msg, { id: "analyze" });
+      setFile((prev) => (prev ? { ...prev, status: "failed" } : prev));
+      stopPolling();
+      const msg = err.response?.data?.error || "Analysis failed.";
+      toast.error(msg);
+      if (msg.includes("little text")) {
+        setTimeout(() => navigate("/upload"), 2000);
+      }
     } finally {
       setAnalyzing(false);
+      stopPolling();
     }
   };
 
-  // DOCX yüklə
-  const handleDownload = async () => {
-    if (!selectedFile) return;
+  const handleGenerateQuiz = async () => {
+    setGeneratingQuiz(true);
     try {
-      const res = await api.get(`/ai/download/${selectedFile._id}`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${selectedFile.originalName || "studyai"}-notes.docx`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast.success("Downloaded!");
-    } catch {
-      toast.error("Download failed.");
-    }
-  };
-
-  // Chat
-  const handleChat = async () => {
-    const msg = chatInput.trim();
-    if (!msg || !selectedFile || chatLoading) return;
-
-    setChatMessages(prev => [...prev, { role: "user", text: msg }]);
-    setChatInput("");
-    setChatLoading(true);
-
-    try {
-      const res = await api.post(`/ai/chat/${selectedFile._id}`, { message: msg });
-      setChatMessages(prev => [...prev, { role: "ai", text: res.data.answer }]);
-    } catch {
-      setChatMessages(prev => [...prev, { role: "ai", text: "Could not get answer. Try again." }]);
+      await api.post(`/quiz/generate/${fileId}`);
+      toast.success("Quiz generated! 🎯");
+      navigate(`/quiz/${fileId}`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to generate quiz.");
     } finally {
-      setChatLoading(false);
+      setGeneratingQuiz(false);
     }
   };
 
-  // Chat scroll
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
 
-  const handleChatKey = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleChat();
-    }
-  };
+  const handleChatSend = async (e) => {
+  e?.preventDefault();
+
+  const msg = chatInput.trim();
+  if (!msg) return;
+
+  // UI-də user mesajını göstər
+  setChatMessages((prev) => [...prev, { role: "user", content: msg }]);
+  setChatInput("");
+  setChatting(true);
+
+  try {
+    const res = await api.post(`/ai/chat/${fileId}`, { message: msg });
+    const answer = res.data?.answer || "No answer.";
+    setChatMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Chat failed.");
+    setChatMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "Sorry — something went wrong. Try again." },
+    ]);
+  } finally {
+    setChatting(false);
+  }
+};
+
+
+  const handleDownloadDocx = async () => {
+  const customName = prompt("Enter file name:", file?.name || "studyai-notes");
+
+  if (!customName) return;
+
+  try {
+    const res = await api.get(`/ai/download/${fileId}`, {
+      responseType: "blob",
+    });
+
+    const blob = new Blob([res.data], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    // təhlükəsizlik üçün ad təmizləmə
+    const safeName = customName
+      .replace(/[\\/:*?"<>|]+/g, "")
+      .trim();
+
+    a.download = `${safeName || "studyai-notes"}.docx`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.error("Download failed.");
+  }
+};
+
+
+
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{ minHeight: "auto", paddingTop: 80 }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <style>{css}</style>
-
+    <div style={{ maxWidth: "100%", padding: "0 24px" }}>
+      {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Analysis</h1>
-          <p className="page-subtitle">AI-powered lecture analysis</p>
+          <h1 className="page-title">AI Analysis</h1>
+          <p className="page-subtitle">📄 {file?.name || "Lecture File"}</p>
         </div>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => navigate("/upload")}
-        >
-          ↑ Upload new file
-        </button>
+
+        <div className="flex gap-3">
+          <button className="btn btn-secondary" onClick={() => navigate("/upload")}>
+            ← Back
+          </button>
+
+          {analysis && (
+            <button
+              className="btn btn-primary"
+              onClick={handleGenerateQuiz}
+              disabled={generatingQuiz}
+            >
+              {generatingQuiz ? "⏳ Generating Quiz..." : "📝 Take Quiz"}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="an-grid an-root">
+      {/* Analyze Prompt (if not yet analyzed) */}
+      {!analysis &&
+        !analyzing &&
+        file?.status !== "processing" &&
+        !pollingActive && (
+        <div className="card" style={{ textAlign: "center", padding: "60px 32px" }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🤖</div>
+          <h2 style={{ fontFamily: "Playfair Display", marginBottom: 12 }}>
+            Ready to Analyze This Lecture?
+          </h2>
+          <p className="text-muted mb-6" style={{ maxWidth: 480, margin: "0 auto 24px" }}>
+            Our AI will read your lecture and generate a comprehensive summary, extract key points,
+            and create study questions — all in seconds.
+          </p>
+          <button className="btn btn-primary btn-lg" onClick={handleAnalyze}>
+            🧠 Analyze with AI
+          </button>
+        </div>
+      )}
 
-        {/* ── Sol: Fayl siyahısı ── */}
-        <div className="an-card">
-          <div className="an-section-label">Your files</div>
+      {/* Loading Animation */}
+      {!analysis && (analyzing || file?.status === "processing" || pollingActive) && (
+        <div className="card">
+          <div className="ai-loading">
+            <div className="ai-loading-dots">
+              <span />
+              <span />
+              <span />
+            </div>
+            <h3 style={{ fontFamily: "Playfair Display" }}>Analyzing Your Lecture...</h3>
+            <p className="text-muted text-sm">
+              The AI is reading through your file, extracting knowledge, and preparing your study materials.
+            </p>
+          </div>
+        </div>
+      )}
 
-          {loadingFiles ? (
-            <div className="an-empty">Loading...</div>
-          ) : files.length === 0 ? (
-            <div className="an-empty">
-              No files yet.
-              <br />
+      {/* Analysis Results */}
+      {analysis && (
+        <>
+          {/* Summary */}
+          <div className="card mb-4">
+            <div className="analysis-section">
+              <div className="analysis-section-title">📖 Summary</div>
+              <p className="summary-text" style={{ whiteSpace: "pre-wrap" }}>
+  {analysis.summary.startsWith("{") 
+    ? (() => { try { return JSON.parse(analysis.summary).summary; } catch { return analysis.summary; } })()
+    : analysis.summary}
+</p>
               <button
-                className="an-btn an-btn-primary"
-                style={{ marginTop: 12 }}
-                onClick={() => navigate("/upload")}
-              >
-                Upload a file
-              </button>
+  className="btn btn-secondary mt-4"
+  onClick={handleDownloadDocx}
+>
+  ⬇ Download as DOCX
+</button>
             </div>
-          ) : (
-            files.map(file => (
-              <div
-                key={file._id}
-                className={`an-file-item ${selectedFile?._id === file._id ? "active" : ""}`}
-                onClick={() => selectFile(file)}
-              >
-                <div className="an-file-icon">{fileIcon(file.originalName)}</div>
-                <div style={{ overflow: "hidden", flex: 1 }}>
-                  <div className="an-file-name">{file.originalName || "Untitled"}</div>
-                  <div className="an-file-date">{prettyDate(file.createdAt)}</div>
-                </div>
-                <div className={`an-status-dot ${file.status || "pending"}`} />
-              </div>
-            ))
-          )}
-        </div>
+          </div>
 
-        {/* ── Sağ: Analiz paneli ── */}
-        <div className="an-card">
-          {!selectedFile ? (
-            <div className="an-main-empty">
-              <div className="an-main-empty-icon">🔍</div>
-              <div className="an-main-empty-text">
-                Select a file from the left to analyze it
+          {/* Key Points */}
+          {analysis.keyPoints.length > 0 && (
+            <div className="card mb-4">
+              <div className="analysis-section">
+                <div className="analysis-section-title">
+                  ⚡ Key Points ({analysis.keyPoints.length})
+                </div>
+
+                {analysis.keyPoints.map((point, i) => (
+                  <div key={i} className="key-point">
+                    <span className="key-point-num">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span>{point}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : (
-            <>
-              {/* Fayl başlığı */}
-              <div className="an-file-header">
-                <div>
-                  <div className="an-file-title">{selectedFile.originalName || "Untitled"}</div>
-                  <div className="an-file-subtitle">
-                    {selectedFile.status === "completed" ? "✅ Analysis ready" :
-                     selectedFile.status === "processing" ? "⏳ Processing..." :
-                     selectedFile.status === "failed" ? "❌ Analysis failed" :
-                     "⬜ Not analyzed yet"}
-                  </div>
-                </div>
-
-                <div className="an-btn-row">
-                  {analysis && (
-                    <button className="an-btn an-btn-green" onClick={handleDownload}>
-                      ↓ Download notes
-                    </button>
-                  )}
-                  <button
-                    className="an-btn an-btn-primary"
-                    onClick={handleAnalyze}
-                    disabled={analyzing}
-                  >
-                    {analyzing ? "Analyzing..." : analysis ? "Re-analyze" : "✨ Analyze"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="an-divider" />
-
-              {/* Processing */}
-              {analyzing && (
-                <div className="an-processing">
-                  <div className="an-spinner-lg" />
-                  <div>AI is analyzing your file...</div>
-                  <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                    This may take a few seconds
-                  </div>
-                </div>
-              )}
-
-              {/* Analiz yoxdur */}
-              {!analyzing && !analysis && (
-                <div className="an-no-analysis">
-                  <div className="an-no-analysis-icon">📋</div>
-                  <div className="an-no-analysis-text">
-                    No analysis yet. Click "Analyze" to start.
-                  </div>
-                </div>
-              )}
-
-              {/* Analiz var */}
-              {!analyzing && analysis && (
-                <>
-                  {/* Tabs */}
-                  <div className="an-tabs">
-                    {["summary", "keypoints", "questions", "chat"].map(tab => (
-                      <button
-                        key={tab}
-                        className={`an-tab ${activeTab === tab ? "active" : ""}`}
-                        onClick={() => setActiveTab(tab)}
-                      >
-                        {tab === "summary" && "📝 Summary"}
-                        {tab === "keypoints" && "⭐ Key Points"}
-                        {tab === "questions" && "❓ Questions"}
-                        {tab === "chat" && "💬 Chat"}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Summary */}
-                  {activeTab === "summary" && (
-                    <div className="an-summary-text">
-                      {analysis.summary || "No summary available."}
-                    </div>
-                  )}
-
-                  {/* Key Points */}
-                  {activeTab === "keypoints" && (
-                    <div>
-                      {(analysis.keyPoints || []).length === 0 ? (
-                        <div style={{ color: "var(--muted)", fontSize: 14 }}>No key points.</div>
-                      ) : (
-                        (analysis.keyPoints || []).map((point, i) => (
-                          <div key={i} className="an-keypoint">
-                            <div className="an-keypoint-dot" />
-                            <div>{point}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-
-                  {/* Study Questions */}
-                  {activeTab === "questions" && (
-                    <div>
-                      {(analysis.studyQuestions || []).length === 0 ? (
-                        <div style={{ color: "var(--muted)", fontSize: 14 }}>No questions.</div>
-                      ) : (
-                        (analysis.studyQuestions || []).map((q, i) => (
-                          <div key={i} className="an-question">
-                            <strong style={{ color: "#818cf8" }}>{i + 1}.</strong> {q}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-
-                  {/* Chat */}
-                  {activeTab === "chat" && (
-                    <div>
-                      <div className="an-chat-messages">
-                        {chatMessages.length === 0 && (
-                          <div style={{ color: "var(--muted)", fontSize: 13, padding: "20px 0" }}>
-                            Ask anything about this file...
-                          </div>
-                        )}
-                        {chatMessages.map((msg, i) => (
-                          <div
-                            key={i}
-                            className={`an-msg ${msg.role === "user" ? "an-msg-user" : "an-msg-ai"}`}
-                          >
-                            {msg.text}
-                          </div>
-                        ))}
-                        {chatLoading && (
-                          <div className="an-msg an-msg-loading">Thinking...</div>
-                        )}
-                        <div ref={chatEndRef} />
-                      </div>
-
-                      <div className="an-chat-input-row">
-                        <input
-                          className="an-chat-input"
-                          placeholder="Ask a question..."
-                          value={chatInput}
-                          onChange={e => setChatInput(e.target.value)}
-                          onKeyDown={handleChatKey}
-                          disabled={chatLoading}
-                        />
-                        <button
-                          className="an-btn an-btn-primary"
-                          onClick={handleChat}
-                          disabled={chatLoading || !chatInput.trim()}
-                        >
-                          Send
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
           )}
+
+          {/* Study Questions */}
+          {analysis.studyQuestions.length > 0 && (
+            <div className="card mb-4">
+              <div className="analysis-section">
+                <div className="analysis-section-title">🤔 Study Questions</div>
+
+                {analysis.studyQuestions.map((q, i) => (
+                  <div key={i} className="study-question">
+                    <strong style={{ color: "var(--mauve)", marginRight: 8 }}>
+                      Q{i + 1}.
+                    </strong>
+                    {q}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+
+          {/* Chat with Lecture */}
+<div className="card mb-4">
+  <div className="analysis-section">
+    <div className="analysis-section-title">💬 Chat with this lecture</div>
+
+    <div
+      style={{
+        background: "var(--surface2)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-sm)",
+        padding: 12,
+        maxHeight: 320,
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      {chatMessages.map((m, idx) => (
+        <div
+          key={idx}
+          style={{
+            alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+            maxWidth: "88%",
+            padding: "10px 12px",
+            borderRadius: 12,
+            background:
+              m.role === "user"
+                ? "rgba(137, 180, 250, 0.18)"
+                : "rgba(203, 166, 247, 0.14)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.55,
+            fontSize: 14,
+          }}
+        >
+          {m.content}
         </div>
-      </div>
-    </>
+      ))}
+
+      {chatting && (
+        <div
+          style={{
+            alignSelf: "flex-start",
+            maxWidth: "88%",
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: "rgba(203, 166, 247, 0.14)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+            fontSize: 14,
+          }}
+        >
+          Thinking...
+        </div>
+      )}
+    </div>
+
+    <form onSubmit={handleChatSend} className="mt-4" style={{ display: "flex", gap: 10 }}>
+      <input
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        placeholder="Ask a question from the lecture..."
+        disabled={chatting}
+      />
+      <button className="btn btn-primary" type="submit" disabled={chatting}>
+        {chatting ? "..." : "Send"}
+      </button>
+    </form>
+  </div>
+</div>
+
+          {/* CTA to Quiz */}
+          <div
+            className="card"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(137,180,250,0.08), rgba(203,166,247,0.08))",
+              textAlign: "center",
+              padding: "40px 32px",
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
+            <h3 style={{ fontFamily: "Playfair Display", marginBottom: 8 }}>
+              Ready to Test Your Knowledge?
+            </h3>
+            <p className="text-muted mb-4">
+              Take an AI-generated quiz with 12 questions to see how well you understood the material.
+            </p>
+            <button
+              className="btn btn-primary btn-lg"
+              onClick={handleGenerateQuiz}
+              disabled={generatingQuiz}
+            >
+              {generatingQuiz ? "⏳ Generating Quiz..." : "🚀 Start Quiz"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
+
