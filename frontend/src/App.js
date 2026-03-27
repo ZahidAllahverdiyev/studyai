@@ -52,6 +52,7 @@ function AppRoutes() {
       <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/upload" element={<UploadPage />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/analysis/:fileId" element={<AnalysisPage />} />
         <Route path="/quiz/:fileId" element={<QuizPage />} />
         <Route path="/results" element={<ResultsPage />} />
