@@ -1,7 +1,3 @@
-// ============================================================
-// backend/utils/aiService.js
-// ============================================================
-
 const Groq = require("groq-sdk");
 const fs = require("fs");
 const path = require("path");
@@ -93,16 +89,6 @@ ${trimmed}`,
 
   return { summary, keyPoints: [], studyQuestions };
 }
-
-// ─────────────────────────────────────────────
-// Köməkçi funksiya: Quiz üçün mətni təmizlə
-//
-// Problem: Müəlliflər mətndə şəxsi qeydlər yazır:
-//   "Qara, Yaşıl, Göy, Mən şəkildəki izahı göstərmişəm"
-//   → Model "Mən"i siyahının elementi kimi oxuyur
-//
-// Həll: Quiz yaratmazdan əvvəl bu qeydləri sil.
-// ─────────────────────────────────────────────
 async function cleanTextForQuiz(rawText) {
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
