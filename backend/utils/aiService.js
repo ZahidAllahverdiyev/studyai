@@ -74,7 +74,6 @@ ${trimmed}`,
   });
 
   const raw = response.choices?.[0]?.message?.content?.trim() || "";
-
   const separator = raw.indexOf("===QUESTIONS===");
   
   let summary = "";
@@ -95,14 +94,58 @@ ${trimmed}`,
   return { summary, keyPoints: [], studyQuestions };
 }
 
+// ─────────────────────────────────────────────
+// Köməkçi funksiya: Quiz üçün mətni təmizlə
+//
+// Problem: Müəlliflər mətndə şəxsi qeydlər yazır:
+//   "Qara, Yaşıl, Göy, Mən şəkildəki izahı göstərmişəm"
+//   → Model "Mən"i siyahının elementi kimi oxuyur
+//
+// Həll: Quiz yaratmazdan əvvəl bu qeydləri sil.
+// ─────────────────────────────────────────────
+async function cleanTextForQuiz(rawText) {
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    temperature: 0.1,
+    max_tokens: 4000,
+    messages: [
+      {
+        role: "user",
+        content: `You are a precise text editor. Clean the lecture text below so it is suitable for generating exam questions.
+
+WHAT TO REMOVE:
+- Author's personal notes (e.g. "I showed this in the image", "as I mentioned", "Mən şəkildəki izahı göstərmişəm", "see my diagram", "I recommend")
+- Any word or phrase where the author refers to themselves ("Mən", "I", "me", "my diagram", "as I showed")
+- Incomplete or broken sentences that do not state a clear fact
+
+WHAT TO FIX:
+- If a list mixes factual items with an author's personal note (e.g. "Qara, Yaşıl, Göy, Mən şəkildəki..."), remove only the personal part and keep the factual list ("Qara, Yaşıl, Göy")
+- If the text contains a contradictory count (e.g. says "three types" but then lists four items), remove the count word and keep the list of items as-is
+
+WHAT TO KEEP:
+- Every factual claim, definition, number, comparison, and technical detail
+- The original language of the text — do NOT translate
+
+Return ONLY the cleaned text. No explanation, no preamble.
+
+TEXT:
+${rawText}`,
+      },
+    ],
+  });
+
+  return response.choices?.[0]?.message?.content?.trim() || rawText;
+}
+
 async function generateQuiz(text) {
   const trimmed = trimText(text);
 
+  // ADDIM 1: Mətni quiz üçün təmizlə
+  const cleanedText = await cleanTextForQuiz(trimmed);
+
+  // ADDIM 2: Təmiz mətnlə quiz yarat
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
-    // DÜZƏLIŞ 1: temperature 0.3 → 0.1
-    // Faktual suallar üçün modelin "yaradıcılığı" azaldılır.
-    // Yüksək temperature modeli mətndə olmayan faktlar "icad etməyə" sövq edir.
     temperature: 0.1,
     max_tokens: 3000,
     messages: [
@@ -125,29 +168,28 @@ Create exactly 12 multiple-choice questions based ONLY on what is written in the
 QUESTION RULES:
 1. Every question must have EXACTLY ONE correct answer.
 2. The correct answer must be a specific fact explicitly stated in the lecture.
-3. NEVER ask about lists or enumerations (e.g. "which of the following are types of X") — these always produce ambiguous answers.
+3. NEVER ask "how many types/kinds/categories" — these cause ambiguous answers when the text is inconsistent.
 4. NEVER create questions where more than one option could be correct.
 5. NEVER use "All of the above", "None of the above", or "Both A and B".
 6. Cover different topics — never ask two similar questions.
 
 DISTRACTOR (WRONG OPTIONS) RULES:
 - Wrong options must be from the SAME CATEGORY as the correct answer.
-  Example: if the correct answer is a speed value like "7200 RPM", wrong options must also be speed values like "4800 RPM", "5400 RPM", "10000 RPM".
-  Example: if the correct answer is a year like "2001", wrong options must also be years.
-- Wrong options should represent COMMON STUDENT MISCONCEPTIONS about the topic — not random guesses.
-- NEVER invent facts that contradict the lecture — wrong options should be plausible but clearly incorrect based on the lecture.
+  Example: if correct answer is "7200 RPM", wrong options must also be RPM values.
+  Example: if correct answer is a brand name, wrong options must also be brand names.
+- Wrong options should be plausible but clearly incorrect based on the lecture.
+- NEVER use personal pronouns ("Mən", "I", "me") or author references as answer options.
 
 EXPLANATION RULES:
-- The explanation must quote or closely paraphrase the exact sentence from the lecture that proves the correct answer.
-- Also briefly explain why the wrong options are incorrect.
+- Quote or closely paraphrase the exact sentence from the lecture that proves the correct answer.
 - Keep explanations under 3 sentences.
 
-SELF-CHECK BEFORE OUTPUTTING:
-For each question, verify:
-✓ Is this fact explicitly written in the lecture? (If NO → delete the question)
+SELF-CHECK BEFORE OUTPUTTING — for each question verify:
+✓ Is this fact explicitly in the lecture? (If NO → delete)
 ✓ Is there only ONE correct answer among the 4 options? (If NO → rewrite)
-✓ Does the correctAnswer field match EXACTLY one of the strings in the options array? (If NO → fix)
-✓ Are all wrong options from the same category as the correct answer? (If NO → replace)
+✓ Does correctAnswer match EXACTLY one string in the options array? (If NO → fix)
+✓ Are wrong options from the same category as the correct answer? (If NO → replace)
+✓ Does any option contain "Mən", "I", "me", or any author reference? (If YES → remove)
 
 STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdown:
 {
@@ -163,7 +205,7 @@ STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdow
 }
 
 LECTURE TEXT:
-${trimmed}`,
+${cleanedText}`,
       },
     ],
   });
@@ -184,30 +226,27 @@ ${trimmed}`,
     throw new Error("Failed to parse quiz from AI. Please try again.");
   }
 
-  // DÜZƏLIŞ 2: Cavab validasiyası əlavə edildi
-  // Model bəzən correctAnswer-i options içindəki mətndən fərqli yazır.
-  // Bu kod hər sualı yoxlayır və uyğunsuzluqları avtomatik düzəldir.
+  // ADDIM 3: correctAnswer validasiyası
+  // Model bəzən correctAnswer-i options-dakı mətndən fərqli yazır.
+  // Bu kod avtomatik düzəldir və ya pozulmuş sualları silir.
   if (parsed?.questions) {
     parsed.questions = parsed.questions
       .map((q) => {
-        // correctAnswer options-dan birindəmi?
         const exactMatch = q.options.find((o) => o === q.correctAnswer);
-        if (exactMatch) return q; // Uyğundur, dəyişmə
+        if (exactMatch) return q;
 
-        // Tam uyğun deyilsə, case-insensitive yoxla
         const looseMatch = q.options.find(
           (o) => o.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()
         );
         if (looseMatch) {
-          q.correctAnswer = looseMatch; // Düzəlt
+          q.correctAnswer = looseMatch;
           return q;
         }
 
-        // Heç biri uyğun deyilsə, bu sualı sil (pozulmuş sual)
         console.warn("Dropping invalid question (correctAnswer not in options):", q.questionText);
         return null;
       })
-      .filter(Boolean); // null-ları sil
+      .filter(Boolean);
   }
 
   return parsed;
