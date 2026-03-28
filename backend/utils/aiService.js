@@ -4,7 +4,7 @@ const path = require("path");
 const pdfParse = require("pdf-parse/lib/pdf-parse");
 const mammoth = require("mammoth");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 
 function trimText(text, maxChars = 12000) {
   if (!text) return "";
