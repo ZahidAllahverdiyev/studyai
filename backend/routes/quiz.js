@@ -1,11 +1,3 @@
-// ============================================================
-// routes/quiz.js - Quiz Generation and Attempt Routes
-// POST /api/quiz/generate/:fileId  - Generate quiz from file
-// GET  /api/quiz/:fileId           - Get quiz for a file
-// POST /api/quiz/:quizId/submit    - Submit quiz answers
-// GET  /api/quiz/results/:quizId   - Get quiz results
-// ============================================================
-
 const express = require('express');
 const File = require('../models/File');
 const Quiz = require('../models/Quiz');
@@ -16,7 +8,6 @@ const { generateQuiz } = require('../utils/aiService');
 const router = express.Router();
 router.use(protect);
 
-// ── GENERATE QUIZ ─────────────────────────────────────────────
 router.post('/generate/:fileId', async (req, res) => {
   try {
     const file = await File.findOne({ _id: req.params.fileId, user: req.user._id });
@@ -28,7 +19,22 @@ router.post('/generate/:fileId', async (req, res) => {
       return res.status(400).json({ error: 'File has insufficient text to generate a quiz.' });
     }
 
-    // Check if quiz already exists for this file
+    const user = req.user;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastDate = user.lastAnalysisDate ? new Date(user.lastAnalysisDate) : null;
+    if (lastDate) lastDate.setHours(0, 0, 0, 0);
+
+    const isNewDay = !lastDate || lastDate < today;
+    if (isNewDay) user.dailyAnalysisCount = 0;
+
+    if (user.dailyAnalysisCount >= 3) {
+      return res.status(429).json({
+        error: 'You have reached your daily limit of 3 analyses. Please come back tomorrow.',
+      });
+    }
+
     const existingQuiz = await Quiz.findOne({ file: file._id, user: req.user._id });
     if (existingQuiz) {
       return res.json({
@@ -37,16 +43,18 @@ router.post('/generate/:fileId', async (req, res) => {
       });
     }
 
-    // Generate quiz with AI
     const result = await generateQuiz(file.extractedText, file.originalName);
 
-    // Save to database
     const quiz = await Quiz.create({
       user: req.user._id,
       file: file._id,
       title: `Quiz: ${file.originalName.replace(/\.(pdf|docx)$/i, '')}`,
       questions: result.questions,
     });
+
+    user.dailyAnalysisCount += 1;
+    user.lastAnalysisDate = new Date();
+    await user.save();
 
     res.status(201).json({
       message: 'Quiz generated successfully!',
@@ -58,7 +66,6 @@ router.post('/generate/:fileId', async (req, res) => {
   }
 });
 
-// ── GET QUIZ ──────────────────────────────────────────────────
 router.get('/file/:fileId', async (req, res) => {
   try {
     const quiz = await Quiz.findOne({ file: req.params.fileId, user: req.user._id });
@@ -71,11 +78,9 @@ router.get('/file/:fileId', async (req, res) => {
   }
 });
 
-// ── SUBMIT QUIZ ───────────────────────────────────────────────
 router.post('/:quizId/submit', async (req, res) => {
   try {
     const { answers, timeTaken } = req.body;
-    // answers = array of strings, one per question, indexed to match questions array
 
     const quiz = await Quiz.findOne({ _id: req.params.quizId, user: req.user._id });
     if (!quiz) {
@@ -86,7 +91,6 @@ router.post('/:quizId/submit', async (req, res) => {
       return res.status(400).json({ error: 'Please answer all questions.' });
     }
 
-    // Grade the quiz
     let correct = 0;
     const gradedQuestions = quiz.questions.map((question, i) => {
       const userAnswer = (answers[i] || '').toString().trim().toLowerCase();
@@ -94,7 +98,6 @@ router.post('/:quizId/submit', async (req, res) => {
 
       let isCorrect = false;
       if (question.questionType === 'short-answer') {
-        // For short answer, check if key words from correct answer appear in user's answer
         const keywords = correctAnswer.split(' ').filter(w => w.length > 3);
         isCorrect = keywords.some(kw => userAnswer.includes(kw));
       } else {
@@ -118,21 +121,19 @@ router.post('/:quizId/submit', async (req, res) => {
     const total = quiz.questions.length;
     const percentage = Math.round((correct / total) * 100);
 
-    // Save this attempt
     quiz.attempts.push({ answers, score, percentage, timeTaken });
     if (percentage > quiz.bestScore) {
       quiz.bestScore = percentage;
     }
     await quiz.save();
 
-    // Update user stats
     const user = await User.findById(req.user._id);
     const prevTotal = user.stats.totalQuizzesTaken;
     const prevAvg = user.stats.averageScore;
-    const newAvg = prevTotal === 0 
-      ? percentage 
+    const newAvg = prevTotal === 0
+      ? percentage
       : Math.round((prevAvg * prevTotal + percentage) / (prevTotal + 1));
-    
+
     await user.updateOne({
       $inc: { 'stats.totalQuizzesTaken': 1 },
       $set: { 'stats.averageScore': newAvg },
@@ -155,7 +156,6 @@ router.post('/:quizId/submit', async (req, res) => {
   }
 });
 
-// ── GET ALL USER QUIZZES ──────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const quizzes = await Quiz.find({ user: req.user._id })
@@ -168,7 +168,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ── Helper Functions ──────────────────────────────────────────
 function getGrade(percentage) {
   if (percentage >= 90) return 'A';
   if (percentage >= 80) return 'B';
@@ -187,7 +186,6 @@ function formatQuizResponse(quiz) {
       questionText: q.questionText,
       questionType: q.questionType,
       options: q.options,
-      // Don't send correct answer to frontend during quiz!
     })),
     attempts: quiz.attempts.length,
     bestScore: quiz.bestScore,

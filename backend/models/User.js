@@ -54,6 +54,8 @@ verificationExpires: {
   default: 'user',
 },
     stats: {
+      dailyAnalysisCount: { type: Number, default: 0 },
+      lastAnalysisDate: { type: Date },
       totalFilesUploaded: { type: Number, default: 0 },
       totalQuizzesTaken: { type: Number, default: 0 },
       averageScore: { type: Number, default: 0 },

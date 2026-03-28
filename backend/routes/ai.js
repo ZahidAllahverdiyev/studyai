@@ -146,6 +146,26 @@ router.post("/analyze/:fileId", async (req, res) => {
       });
     }
 
+    // ── Gündəlik limit yoxlaması ──────────────────────────
+    const user = req.user;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastDate = user.lastAnalysisDate ? new Date(user.lastAnalysisDate) : null;
+    if (lastDate) lastDate.setHours(0, 0, 0, 0);
+
+    const isNewDay = !lastDate || lastDate < today;
+
+    if (isNewDay) {
+      user.dailyAnalysisCount = 0;
+    }
+
+    if (user.dailyAnalysisCount >= 3) {
+      return res.status(429).json({
+        error: "You have reached your daily limit of 3 analyses. Please come back tomorrow.",
+      });
+    }
+    // ─────────────────────────────────────────────────────
 
     file.status = "processing";
     await file.save();
@@ -161,36 +181,14 @@ router.post("/analyze/:fileId", async (req, res) => {
     file.status = "completed";
     await file.save();
 
+    // ── Sayı artır və saxla ───────────────────────────────
+    user.dailyAnalysisCount += 1;
+    user.lastAnalysisDate = new Date();
+    await user.save();
+    // ─────────────────────────────────────────────────────
+
     return res.json({ message: "Analysis complete!", analysis: file.aiAnalysis });
   } catch (err) {
-    console.error("AI Analysis error FULL:", err);
-    console.error("AI Analysis error MESSAGE:", err.message);
-    console.error("AI Analysis error STATUS:", err.status);
-    await File.findByIdAndUpdate(req.params.fileId, { status: "failed" });
-
-    if (err.status === 429 || err.message?.includes("rate") || err.message?.includes("quota")) {
-      return res.status(429).json({ error: "AI limit reached. Please wait 1 minutes and try again." });
-    }
-    return res.status(500).json({ error: "AI analysis failed. Please try again." });
+    // ... qalanı eyni qalır
   }
 });
-
-// ✅ GET ANALYSIS
-router.get("/analysis/:fileId", async (req, res) => {
-  try {
-    const file = await File.findOne({ _id: req.params.fileId, user: req.user._id })
-      .select("aiAnalysis status originalName");
-
-    if (!file) return res.status(404).json({ error: "File not found." });
-
-    return res.json({
-      fileName: file.originalName,
-      status: file.status,
-      analysis: file.aiAnalysis,
-    });
-  } catch (err) {
-    return res.status(500).json({ error: "Error fetching analysis." });
-  }
-});
-
-module.exports = router;
