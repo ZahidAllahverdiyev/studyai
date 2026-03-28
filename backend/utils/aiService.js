@@ -100,70 +100,68 @@ async function generateQuiz(text) {
 
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
-    temperature: 0.3,
+    // DÜZƏLIŞ 1: temperature 0.3 → 0.1
+    // Faktual suallar üçün modelin "yaradıcılığı" azaldılır.
+    // Yüksək temperature modeli mətndə olmayan faktlar "icad etməyə" sövq edir.
+    temperature: 0.1,
     max_tokens: 3000,
     messages: [
       {
         role: "user",
-        content: `You are a world-class university professor and assessment expert with 20 years of experience creating high-stakes examinations.
+        content: `You are a strict academic assessment expert. Your only job is to extract factual questions directly from the lecture text below.
 
 LANGUAGE RULE: Detect the language of the lecture text and respond in that SAME language entirely.
 
-YOUR MISSION:
-Create 12 multiple-choice questions that genuinely test whether a student has deeply understood the lecture.
+═══════════════════════════════════════════════
+CRITICAL RULE — READ THIS FIRST:
+You are NOT allowed to use your general knowledge.
+Every question, every answer option, and every explanation MUST come directly from the lecture text.
+If a fact is not explicitly written in the lecture, do NOT include it.
+═══════════════════════════════════════════════
 
-ABSOLUTE RULES — NEVER VIOLATE:
-1. Every question must have EXACTLY ONE correct answer. No exceptions.
-2. NEVER ask about lists, categories, or enumerations from the lecture (e.g. "which interfaces", "which types", "which features", "which advantages"). These always produce ambiguous answers.
-3. NEVER create questions where multiple options could be considered correct or partially correct.
-4. All 4 options must be plausible — a student who hasn't studied should struggle to choose.
-5. NEVER use "All of the above", "None of the above", "Both A and B".
-6. Use ONLY information explicitly stated in the lecture. Never add outside knowledge.
-7. Cover DIFFERENT topics — never ask two similar questions.
-8. The correct answer must be ONE specific, unambiguous fact from the lecture.
+YOUR TASK:
+Create exactly 12 multiple-choice questions based ONLY on what is written in the lecture text.
 
-GOOD QUESTION TYPES (use these):
-- "What replaced X?" → one specific answer
-- "What is the main disadvantage of X?" → one specific answer  
-- "In what year was X introduced?" → one specific answer
-- "What does X measure?" → one specific answer
-- "Why is X used instead of Y?" → one specific answer
-- "What happens when X occurs?" → one specific answer
+QUESTION RULES:
+1. Every question must have EXACTLY ONE correct answer.
+2. The correct answer must be a specific fact explicitly stated in the lecture.
+3. NEVER ask about lists or enumerations (e.g. "which of the following are types of X") — these always produce ambiguous answers.
+4. NEVER create questions where more than one option could be correct.
+5. NEVER use "All of the above", "None of the above", or "Both A and B".
+6. Cover different topics — never ask two similar questions.
 
-BAD QUESTION TYPES (never use these):
-- "Which of the following are types of X?" → multiple correct answers possible
-- "What are the advantages of X?" → multiple correct answers possible
-- "Which interfaces does X support?" → multiple correct answers possible
-- "What are the features of X?" → multiple correct answers possible
-
-QUESTION TYPE DISTRIBUTION:
-- 4 questions: Specific factual (dates, measurements, names — non-obvious details)
-- 4 questions: Conceptual (why/how something works)
-- 2 questions: Comparative (specific difference between two concepts)
-- 2 questions: Cause-effect (what causes what, what results from what)
-
-DISTRACTOR RULES:
-- Wrong options must reflect common misconceptions, not obviously wrong guesses.
-- Wrong options must be from the same category as the correct answer.
-- Example: if correct answer is "5400 RPM", wrong options should also be RPM values, not random words.
+DISTRACTOR (WRONG OPTIONS) RULES:
+- Wrong options must be from the SAME CATEGORY as the correct answer.
+  Example: if the correct answer is a speed value like "7200 RPM", wrong options must also be speed values like "4800 RPM", "5400 RPM", "10000 RPM".
+  Example: if the correct answer is a year like "2001", wrong options must also be years.
+- Wrong options should represent COMMON STUDENT MISCONCEPTIONS about the topic — not random guesses.
+- NEVER invent facts that contradict the lecture — wrong options should be plausible but clearly incorrect based on the lecture.
 
 EXPLANATION RULES:
-- Each explanation must directly quote or closely reference the lecture text.
-- Explain WHY the correct answer is right AND why the others are wrong.
+- The explanation must quote or closely paraphrase the exact sentence from the lecture that proves the correct answer.
+- Also briefly explain why the wrong options are incorrect.
+- Keep explanations under 3 sentences.
 
-STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text:
+SELF-CHECK BEFORE OUTPUTTING:
+For each question, verify:
+✓ Is this fact explicitly written in the lecture? (If NO → delete the question)
+✓ Is there only ONE correct answer among the 4 options? (If NO → rewrite)
+✓ Does the correctAnswer field match EXACTLY one of the strings in the options array? (If NO → fix)
+✓ Are all wrong options from the same category as the correct answer? (If NO → replace)
+
+STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdown:
 {
   "questions": [
     {
       "questionText": "Question here?",
       "questionType": "multiple-choice",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Exact text of correct option",
-      "explanation": "Specific explanation citing the lecture"
+      "correctAnswer": "Exact text of correct option — must match one of the options above character for character",
+      "explanation": "Explanation citing the lecture"
     }
   ]
 }
-  
+
 LECTURE TEXT:
 ${trimmed}`,
       },
@@ -172,17 +170,47 @@ ${trimmed}`,
 
   const raw = response.choices?.[0]?.message?.content?.trim() || "";
   console.log("Quiz raw:", raw.substring(0, 500));
+
   const cleaned = raw
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/```\s*$/i, "")
     .trim();
 
+  let parsed;
   try {
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch {
     throw new Error("Failed to parse quiz from AI. Please try again.");
   }
+
+  // DÜZƏLIŞ 2: Cavab validasiyası əlavə edildi
+  // Model bəzən correctAnswer-i options içindəki mətndən fərqli yazır.
+  // Bu kod hər sualı yoxlayır və uyğunsuzluqları avtomatik düzəldir.
+  if (parsed?.questions) {
+    parsed.questions = parsed.questions
+      .map((q) => {
+        // correctAnswer options-dan birindəmi?
+        const exactMatch = q.options.find((o) => o === q.correctAnswer);
+        if (exactMatch) return q; // Uyğundur, dəyişmə
+
+        // Tam uyğun deyilsə, case-insensitive yoxla
+        const looseMatch = q.options.find(
+          (o) => o.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()
+        );
+        if (looseMatch) {
+          q.correctAnswer = looseMatch; // Düzəlt
+          return q;
+        }
+
+        // Heç biri uyğun deyilsə, bu sualı sil (pozulmuş sual)
+        console.warn("Dropping invalid question (correctAnswer not in options):", q.questionText);
+        return null;
+      })
+      .filter(Boolean); // null-ları sil
+  }
+
+  return parsed;
 }
 
 async function chatWithLecture(context, userMessage) {
@@ -194,8 +222,8 @@ async function chatWithLecture(context, userMessage) {
     max_tokens: 900,
     messages: [
       {
-  role: "system",
-  content: `You are a helpful and knowledgeable AI tutor — like ChatGPT.
+        role: "system",
+        content: `You are a helpful and knowledgeable AI tutor — like ChatGPT.
 
 LANGUAGE RULE: Always respond in the same language as the student's question.
 
@@ -209,7 +237,7 @@ YOUR ROLE:
 
 LECTURE CONTEXT (use as additional reference):
 ${ctx}`,
-},
+      },
       {
         role: "user",
         content: userMessage,
