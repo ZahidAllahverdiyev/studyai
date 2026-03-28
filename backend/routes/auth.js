@@ -75,7 +75,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       email: user.email,
       avatar: user.avatar,
       stats: user.stats,
-      role: user,
+      role: user.role,
     },
   });
 };
