@@ -192,3 +192,5 @@ router.post("/analyze/:fileId", async (req, res) => {
     // ... qalanı eyni qalır
   }
 });
+
+module.exports = router;
