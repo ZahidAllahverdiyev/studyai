@@ -22,6 +22,24 @@ router.get('/users', protect, adminOnly, async (req, res) => {
   }
 });
 
+// İstifadəçinin rolunu dəyiş
+router.patch('/users/:id/role', protect, adminOnly, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['user', 'admin', 'premium'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role.' });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    ).select('-password');
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // İstifadəçini sil
 router.delete('/users/:id', protect, adminOnly, async (req, res) => {
   try {

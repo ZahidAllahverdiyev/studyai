@@ -50,7 +50,7 @@ verificationExpires: {
 },
     role: {
   type: String,
-  enum: ['user', 'admin'],
+  enum: ['user', 'admin', 'premium'],
   default: 'user',
 },
     stats: {

@@ -160,7 +160,7 @@ router.post("/analyze/:fileId", async (req, res) => {
       user.dailyAnalysisCount = 0;
     }
 
-    if (user.dailyAnalysisCount >= 3) {
+    if (user.role === 'user' && user.dailyAnalysisCount >= 3) {
       return res.status(429).json({
         error: "You have reached your daily limit of 3 analyses. Please come back tomorrow.",
       });

@@ -29,7 +29,7 @@ router.post('/generate/:fileId', async (req, res) => {
     const isNewDay = !lastDate || lastDate < today;
     if (isNewDay) user.dailyAnalysisCount = 0;
 
-    if (user.role !== 'admin' && user.dailyAnalysisCount >= 3) {
+    if (user.role === 'user' && user.dailyAnalysisCount >= 3) {
       return res.status(429).json({
         error: 'You have reached your daily limit of 3 analyses. Please come back tomorrow.',
       });
