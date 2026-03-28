@@ -1,11 +1,7 @@
-// ============================================================
-// models/User.js - MongoDB User Schema
-// Defines the structure of user documents in the database.
-// ============================================================
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// İstifadəçi məlumatlarını saxlayan schema
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -23,62 +19,45 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
     },
-    
-    isVerified: {
-  type: Boolean,
-  default: false,
-},
-verificationCode: {
-  type: String,
-  select: false,
-},
-verificationExpires: {
-  type: Date,
-  select: false,
-},
+    // Email təsdiqləmə üçün sahələr
+    isVerified: { type: Boolean, default: false },
+    verificationCode: { type: String, select: false },
+    verificationExpires: { type: Date, select: false },
+    // select: false - sorğularda default olaraq şifrə qaytarılmır
     password: {
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
-      // select: false means password won't be returned in queries by default
       select: false,
     },
-
-    avatar: {
-  type: String,
-  default: "",
-},
+    avatar: { type: String, default: '' },
+    // İstifadəçi rolu: adi, admin, və ya premium
     role: {
-  type: String,
-  enum: ['user', 'admin', 'premium'],
-  default: 'user',
-},
+      type: String,
+      enum: ['user', 'admin', 'premium'],
+      default: 'user',
+    },
+    // İstifadəçinin ümumi statistikası
     stats: {
       dailyAnalysisCount: { type: Number, default: 0 },
       lastAnalysisDate: { type: Date },
       totalFilesUploaded: { type: Number, default: 0 },
       totalQuizzesTaken: { type: Number, default: 0 },
       averageScore: { type: Number, default: 0 },
-      totalStudyTime: { type: Number, default: 0 }, // in minutes
+      totalStudyTime: { type: Number, default: 0 }, // dəqiqə ilə
     },
   },
-  {
-    timestamps: true, // automatically adds createdAt and updatedAt
-  }
+  { timestamps: true }
 );
 
-// ── Hash password before saving ──────────────────────────────
-// This "pre-save hook" runs automatically before every save()
+// Saxlamadan əvvəl şifrə avtomatik hash-lənir
 userSchema.pre('save', async function (next) {
-  // Only hash if password was modified (not on other updates)
   if (!this.isModified('password')) return next();
-
-  // bcrypt with 12 rounds is strong and reasonably fast
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// ── Method to compare passwords on login ─────────────────────
+// Daxil olarkən şifrəni müqayisə edir
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
