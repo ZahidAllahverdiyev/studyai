@@ -137,45 +137,59 @@ async function generateQuiz(text) {
     messages: [
       {
         role: "user",
-        content: `You are a strict academic assessment expert. Your only job is to extract factual questions directly from the lecture text below.
+        content: `You are a seasoned academic professor with 20 years of experience designing university-level exams. Your mission is to create questions that test DEEP UNDERSTANDING — not memorization, not trivial recall.
 
 LANGUAGE RULE: Detect the language of the lecture text and respond in that SAME language entirely.
 
+ABSOLUTE RULE: Every question, answer option, and explanation must be grounded in the lecture text. Do not use outside knowledge.
+
 ═══════════════════════════════════════════════
-CRITICAL RULE — READ THIS FIRST:
-You are NOT allowed to use your general knowledge.
-Every question, every answer option, and every explanation MUST come directly from the lecture text.
-If a fact is not explicitly written in the lecture, do NOT include it.
+QUESTION TYPE DISTRIBUTION — you must use ALL 5 types:
 ═══════════════════════════════════════════════
 
-YOUR TASK:
-Create exactly 12 multiple-choice questions based ONLY on what is written in the lecture text.
+TYPE 1 — CONCEPTUAL UNDERSTANDING (3 questions)
+Test whether the student truly understands the concept, not just memorized it.
+Ask "Why?", "What is the purpose of?", "Under what conditions?", "What problem does X solve?"
+Example: "Why is NTFS preferred over FAT32 for enterprise environments?"
 
-QUESTION RULES:
-1. Every question must have EXACTLY ONE correct answer.
-2. The correct answer must be a specific fact explicitly stated in the lecture.
-3. NEVER ask "how many types/kinds/categories" — these cause ambiguous answers when the text is inconsistent.
-4. NEVER create questions where more than one option could be correct.
-5. NEVER use "All of the above", "None of the above", or "Both A and B".
-6. Cover different topics — never ask two similar questions.
+TYPE 2 — COMPARISON (2 questions)  
+Compare two concepts, technologies, or approaches covered in the lecture.
+Example: "What is the key difference between TCP and UDP?"
 
-DISTRACTOR (WRONG OPTIONS) RULES:
-- Wrong options must be from the SAME CATEGORY as the correct answer.
-  Example: if correct answer is "7200 RPM", wrong options must also be RPM values.
-  Example: if correct answer is a brand name, wrong options must also be brand names.
-- Wrong options should be plausible but clearly incorrect based on the lecture.
-- NEVER use personal pronouns ("Mən", "I", "me") or author references as answer options.
+TYPE 3 — PRACTICAL SCENARIO (3 questions)
+Give a real-world situation and ask the student to choose the correct solution.
+Format: "A company has [problem]. Which approach is most appropriate?"
+Example: "A network administrator needs to share one printer across 50 users. What is the best method?"
 
-EXPLANATION RULES:
-- Quote or closely paraphrase the exact sentence from the lecture that proves the correct answer.
-- Keep explanations under 3 sentences.
+TYPE 4 — CRITICAL FACT (2 questions)
+The most important facts from the lecture — numbers, specifications, key names.
+But NEVER ask trivial "how do you open X?" questions.
 
-SELF-CHECK BEFORE OUTPUTTING — for each question verify:
-✓ Is this fact explicitly in the lecture? (If NO → delete)
-✓ Is there only ONE correct answer among the 4 options? (If NO → rewrite)
-✓ Does correctAnswer match EXACTLY one string in the options array? (If NO → fix)
-✓ Are wrong options from the same category as the correct answer? (If NO → replace)
-✓ Does any option contain "Mən", "I", "me", or any author reference? (If YES → remove)
+TYPE 5 — APPLICATION & PURPOSE (2 questions)
+"What is the main function of X?", "Which problem does this technology solve?", "When would you use X over Y?"
+
+═══════════════════════════════════════════════
+STRICT PROHIBITIONS — never do these:
+═══════════════════════════════════════════════
+❌ NEVER ask "How do you open X?" — this is trivial and worthless
+❌ NEVER ask "What is the abbreviation of X?" — this tests memory, not understanding
+❌ NEVER create two similar questions — each question must cover a different topic
+❌ NEVER use "All of the above" or "None of the above"
+❌ NEVER write 12 questions in the same format — variety is mandatory
+❌ NEVER embed the answer inside the question itself
+❌ NEVER ask questions where multiple options could be correct
+
+DISTRACTOR RULES:
+- Wrong options must belong to the same category as the correct answer
+- Wrong options must be plausible but clearly incorrect based on the lecture
+- All options should be roughly equal in length
+
+SELF-CHECK before outputting each question:
+✓ Does this question require the student to THINK? (NO → rewrite)
+✓ Is this fact explicitly in the lecture? (NO → delete)
+✓ Is there ONLY ONE correct answer? (NO → rewrite)
+✓ Does correctAnswer match EXACTLY one option string character for character? (NO → fix)
+✓ Is this question different from all previous questions? (NO → replace)
 
 STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdown:
 {
@@ -184,14 +198,14 @@ STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdow
       "questionText": "Question here?",
       "questionType": "multiple-choice",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Exact text of correct option — must match one of the options above character for character",
-      "explanation": "Explanation citing the lecture"
+      "correctAnswer": "Exact text of correct option",
+      "explanation": "Brief explanation citing the lecture"
     }
   ]
 }
 
 LECTURE TEXT:
-${cleanedText}`,
+${cleanedText}`
       },
     ],
   });
