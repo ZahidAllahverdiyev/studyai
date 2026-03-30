@@ -6,6 +6,25 @@ const { analyzeLecture } = require("../utils/aiService");
 const router = express.Router();
 router.use(protect);
 
+router.get("/analysis/:fileId", async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.fileId, 
+      user: req.user._id 
+    }).select("originalName status aiAnalysis");
+
+    if (!file) return res.status(404).json({ error: "File not found." });
+
+    return res.json({
+      fileName: file.originalName,
+      status: file.status,
+      analysis: file.aiAnalysis || null,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch analysis." });
+  }
+});
+
 router.post("/chat/:fileId", async (req, res) => {
   try {
     const { message } = req.body;
