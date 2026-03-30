@@ -89,6 +89,7 @@ ${trimmed}`,
 
   return { summary, keyPoints: [], studyQuestions };
 }
+
 async function cleanTextForQuiz(rawText) {
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
@@ -105,11 +106,11 @@ WHAT TO REMOVE:
 - Incomplete or broken sentences that do not state a clear fact
 
 WHAT TO FIX:
-- If a list mixes factual items with an author's personal note (e.g. "Qara, Yaşıl, Göy, Mən şəkildəki..."), remove only the personal part and keep the factual list ("Qara, Yaşıl, Göy")
-- If the text contains a contradictory count (e.g. says "three types" but then lists four items), remove the count word and keep the list of items as-is
+- If a list mixes factual items with an author's personal note, remove only the personal part and keep the factual list
+- If the text contains a contradictory count, remove the count word and keep the list of items as-is
 
 WHAT TO KEEP:
-- Every factual claim, definition, number, comparison, and technical detail
+- Every factual claim, definition, number, comparison, technical detail, purpose, and use case
 - The original language of the text — do NOT translate
 
 Return ONLY the cleaned text. No explanation, no preamble.
@@ -126,86 +127,104 @@ ${rawText}`,
 async function generateQuiz(text) {
   const trimmed = trimText(text);
 
-  // ADDIM 1: Mətni quiz üçün təmizlə
+  // Step 1: Clean text
   const cleanedText = await cleanTextForQuiz(trimmed);
 
-  // ADDIM 2: Təmiz mətnlə quiz yarat
+  // Step 2: Generate quiz
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     temperature: 0.1,
-    max_tokens: 3000,
+    max_tokens: 4000,
     messages: [
       {
         role: "user",
-        content: `You are a seasoned academic professor with 20 years of experience designing university-level exams. Your mission is to create questions that test DEEP UNDERSTANDING — not memorization, not trivial recall.
+        content: `You are a university professor with 20 years of experience writing high-quality exams. You deeply understand the difference between a MEANINGFUL question and a TRIVIAL question.
 
-LANGUAGE RULE: Detect the language of the lecture text and respond in that SAME language entirely.
+LANGUAGE RULE: Detect the language of the lecture text and write ALL output in that exact same language.
 
-ABSOLUTE RULE: Every question, answer option, and explanation must be grounded in the lecture text. Do not use outside knowledge.
+SOURCE RULE: Every question and every answer option must come directly from the lecture text. Do not use outside knowledge.
 
-═══════════════════════════════════════════════
-QUESTION TYPE DISTRIBUTION — you must use ALL 5 types:
-═══════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT MAKES A GOOD QUESTION:
+A good question forces the student to think. It tests whether they UNDERSTAND the material — not whether they memorized a sentence.
 
-TYPE 1 — CONCEPTUAL UNDERSTANDING (3 questions)
-Test whether the student truly understands the concept, not just memorized it.
-Ask "Why?", "What is the purpose of?", "Under what conditions?", "What problem does X solve?"
-Example: "Why is NTFS preferred over FAT32 for enterprise environments?"
+Ask about:
+- The PURPOSE or FUNCTION of something ("What problem does X solve?", "Why is X used?")
+- The DIFFERENCE between two things ("How does X differ from Y?")
+- The CONSEQUENCE or RESULT ("What happens when X is used instead of Y?")
+- A REAL SCENARIO ("A system administrator needs to do X — which tool is appropriate?")
+- A KEY CHARACTERISTIC that sets something apart
 
-TYPE 2 — COMPARISON (2 questions)  
-Compare two concepts, technologies, or approaches covered in the lecture.
-Example: "What is the key difference between TCP and UDP?"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT MAKES A BAD QUESTION — NEVER DO THESE:
+✗ "How do you open X?" — trivial, meaningless
+✗ "What command opens X?" — trivial, meaningless  
+✗ "What is the shortcut to open X?" — trivial, meaningless
+✗ "What is the abbreviation of X?" — tests memory, not understanding
+✗ Asking the same type of question repeatedly
+✗ Using identical wrong options across multiple questions (e.g. never reuse "A: Manage system config, B: Manage security, C: Manage services" in more than one question)
+✗ Using "All of the above" or "None of the above"
+✗ Writing a question where the answer is obvious from the question text itself
+✗ Two questions about the same topic
 
-TYPE 3 — PRACTICAL SCENARIO (3 questions)
-Give a real-world situation and ask the student to choose the correct solution.
-Format: "A company has [problem]. Which approach is most appropriate?"
-Example: "A network administrator needs to share one printer across 50 users. What is the best method?"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUESTION MIX — write exactly 12 questions in this distribution:
 
-TYPE 4 — CRITICAL FACT (2 questions)
-The most important facts from the lecture — numbers, specifications, key names.
-But NEVER ask trivial "how do you open X?" questions.
+3 × PURPOSE/FUNCTION questions
+  → "What is the main purpose of X?"
+  → "Which problem does X solve?"
+  → Each must have a unique, specific correct answer — not a generic one
 
-TYPE 5 — APPLICATION & PURPOSE (2 questions)
-"What is the main function of X?", "Which problem does this technology solve?", "When would you use X over Y?"
+2 × COMPARISON questions  
+  → "What is the key difference between X and Y?"
+  → "Why would an administrator choose X over Y?"
 
-═══════════════════════════════════════════════
-STRICT PROHIBITIONS — never do these:
-═══════════════════════════════════════════════
-❌ NEVER ask "How do you open X?" — this is trivial and worthless
-❌ NEVER ask "What is the abbreviation of X?" — this tests memory, not understanding
-❌ NEVER create two similar questions — each question must cover a different topic
-❌ NEVER use "All of the above" or "None of the above"
-❌ NEVER write 12 questions in the same format — variety is mandatory
-❌ NEVER embed the answer inside the question itself
-❌ NEVER ask questions where multiple options could be correct
+3 × SCENARIO/APPLICATION questions
+  → Describe a real situation, ask which tool/method/approach is correct
+  → Example: "A company needs to schedule automatic backups every night. Which tool is most appropriate?"
 
-DISTRACTOR RULES:
-- Wrong options must belong to the same category as the correct answer
-- Wrong options must be plausible but clearly incorrect based on the lecture
-- All options should be roughly equal in length
+2 × CHARACTERISTIC questions
+  → About a specific feature, requirement, or limitation of a technology
+  → Must test a non-obvious fact from the lecture
 
-SELF-CHECK before outputting each question:
-✓ Does this question require the student to THINK? (NO → rewrite)
-✓ Is this fact explicitly in the lecture? (NO → delete)
-✓ Is there ONLY ONE correct answer? (NO → rewrite)
-✓ Does correctAnswer match EXACTLY one option string character for character? (NO → fix)
-✓ Is this question different from all previous questions? (NO → replace)
+2 × OPEN FACT questions (maximum)
+  → Only for the most important specific facts (numbers, names, versions)
+  → NEVER about how to open or launch a program
 
-STRICT OUTPUT FORMAT — respond ONLY with valid JSON, no extra text, no markdown:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ANSWER OPTIONS RULES:
+- Each question must have exactly 4 options (A, B, C, D)
+- Wrong options must be from the SAME CATEGORY as the correct answer
+  → If correct answer is a tool name, wrong options must also be tool names from the lecture
+  → If correct answer is a purpose/function, wrong options must also be purposes/functions — but each one unique and specific, not generic filler text
+- Every question must have completely different options from all other questions
+- Options should be roughly equal in length
+- The correct answer must be explicitly stated in the lecture
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BEFORE WRITING EACH QUESTION, ASK YOURSELF:
+1. Would a student who read the lecture but didn't memorize every line get this wrong? (If NO → the question is too trivial, rewrite it)
+2. Is there only ONE clearly correct answer? (If NO → rewrite)
+3. Have I already asked something similar? (If YES → pick a different topic)
+4. Are all 4 options completely different from the options I used in previous questions? (If NO → replace the repeated options)
+5. Does correctAnswer match EXACTLY one of the option strings, character for character? (If NO → fix it)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT — respond ONLY with valid JSON, no markdown, no extra text:
 {
   "questions": [
     {
       "questionText": "Question here?",
       "questionType": "multiple-choice",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Exact text of correct option",
-      "explanation": "Brief explanation citing the lecture"
+      "correctAnswer": "Exact text of correct option — must match one of the options above character for character",
+      "explanation": "One or two sentences from the lecture that prove this answer is correct"
     }
   ]
 }
 
 LECTURE TEXT:
-${cleanedText}`
+${cleanedText}`,
       },
     ],
   });
@@ -226,9 +245,7 @@ ${cleanedText}`
     throw new Error("Failed to parse quiz from AI. Please try again.");
   }
 
-  // ADDIM 3: correctAnswer validasiyası
-  // Model bəzən correctAnswer-i options-dakı mətndən fərqli yazır.
-  // Bu kod avtomatik düzəldir və ya pozulmuş sualları silir.
+  // Validate and fix correctAnswer matching
   if (parsed?.questions) {
     parsed.questions = parsed.questions
       .map((q) => {
