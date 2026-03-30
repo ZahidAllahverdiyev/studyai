@@ -189,7 +189,6 @@ router.post("/analyze/:fileId", async (req, res) => {
 
     return res.json({ message: "Analysis complete!", analysis: file.aiAnalysis });
   } catch (err) {
-    // ... qalanı eyni qalır
   }
 });
 
