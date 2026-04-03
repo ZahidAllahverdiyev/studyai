@@ -61,7 +61,15 @@ CONTENT RULES:
 - Be detailed and thorough — your notes should be as long as needed.
 
 After the notes, add a line that says exactly: ===QUESTIONS===
-Then write exactly 5 open-ended study questions, one per line, without numbering or prefixes.
+Then write exactly 5 study questions. These questions must follow these strict rules:
+
+1. DO NOT use any fact, sentence, or concept from the lecture text above
+2. Use ONLY your own general knowledge about this subject area
+3. Each question must push the student to research, think deeply, or explore something new
+4. Questions must be open-ended — no yes/no questions
+5. Cover different angles: real-world application, historical context, comparison with alternatives, future implications, common misconceptions
+6. Write in the same language as the lecture
+7. Do not number or prefix the questions — one per line only
 
 LECTURE TEXT:
 ${trimmed}`,
