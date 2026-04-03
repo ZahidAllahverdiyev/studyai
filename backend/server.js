@@ -39,6 +39,7 @@ app.use(cors({
     'https://stuadyai.one',
     'https://www.stuadyai.one',
     'https://studyai-liart.vercel.app',
+    'https://studyai-6jgc71zez-zahidallahverdiyevs-projects.vercel.app',
   ],
   credentials: true,
 }));
