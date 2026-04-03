@@ -264,6 +264,9 @@ export default function LoginPage() {
             Don't have an account?{' '}
             <Link to="/register">Create one free</Link>
           </div>
+          <div className="login-footer" style={{ marginTop: 8 }}>
+  <Link to="/forgot-password">Forgot your password?</Link>
+</div>
         </div>
       </div>
     </>

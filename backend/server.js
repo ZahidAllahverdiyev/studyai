@@ -5,7 +5,6 @@ process.on('uncaughtException', (err) => {
 
 process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED REJECTION:', err);
-  process.exit(1);
 });
 
 require('dotenv').config();
@@ -56,6 +55,7 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts, please try again in 15 minutes.' }
 });
 
+app.use('/api/', limiter);
 app.use('/api/auth/login', loginLimiter);
 app.use(mongoSanitize());
 app.use(express.json({ limit: '10mb' }));
@@ -95,3 +95,8 @@ mongoose
     console.error('❌ MongoDB connection failed:', err.message);
     process.exit(1);
   });
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ MongoDB disconnected. Reconnecting...');
+  mongoose.connect(process.env.MONGODB_URI);
+});

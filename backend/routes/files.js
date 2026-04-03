@@ -1,9 +1,10 @@
 // ============================================================
-// routes/files.js - File Upload and Management Routes
-// POST /api/files/upload  - Upload a PDF or DOCX file
-// GET  /api/files         - Get all user's files
-// GET  /api/files/:id     - Get one file
-// DELETE /api/files/:id   - Delete a file
+// routes/files.js - Fayl Yükləmə və İdarəetmə Marşrutları
+//
+// POST   /api/files/upload  - PDF və ya DOCX faylı yüklə
+// GET    /api/files         - İstifadəçinin bütün fayllarını gətir
+// GET    /api/files/:id     - Tək bir faylı gətir
+// DELETE /api/files/:id     - Faylı sil
 // ============================================================
 
 const express = require('express');
@@ -16,85 +17,91 @@ const { extractTextFromFile } = require('../utils/fileParser');
 
 const router = express.Router();
 
-// All file routes require authentication
+// Bütün fayl marşrutları autentifikasiya tələb edir — token olmadan keçid yoxdur
 router.use(protect);
 
-// ── Multer Configuration ─────────────────────────────────────
-// Multer handles multipart/form-data (file uploads)
-
-// Make sure the uploads directory exists
+// Yükləmə qovluğunu yoxla, yoxdursa yarat
 const uploadDir = process.env.UPLOAD_PATH || './uploads';
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true }); // recursive: alt qovluqları da yaradır
 }
 
+// Multer üçün saxlama konfiqurasiyası — faylı hara və hansı adla saxlayacağını müəyyən edir
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, uploadDir); // Faylı uploads/ qovluğuna yaz
   },
   filename: (req, file, cb) => {
-    // Create a unique filename: timestamp-userid-originalname
+    // Unikal fayl adı: vaxt damğası + istifadəçi ID + orijinal uzantı
     const uniqueSuffix = Date.now() + '-' + req.user._id;
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `${uniqueSuffix}${ext}`);
   },
 });
 
+// Yalnız PDF və DOCX fayllarına icazə ver — digər formatlar rədd edilir
 const fileFilter = (req, file, cb) => {
-  // Only accept PDF and DOCX files
   const allowedTypes = [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
   if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+    cb(null, true); // Faylı qəbul et
   } else {
-    cb(new Error('Only PDF and DOCX files are allowed.'), false);
+    cb(new Error('Only PDF and DOCX files are allowed.'), false); // Faylı rədd et
   }
 };
 
+// Multer instansiyası — saxlama, filtr və ölçü limiti ilə
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // Default: 10MB
   },
 });
 
-// ── UPLOAD FILE ───────────────────────────────────────────────
+// ── FAYL YÜKLƏ ────────────────────────────────────────────────
+// POST /api/files/upload
+// upload.single('file') — formdan gələn 'file' sahəsini oxuyur
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
+    // Fayl göndərilməyibsə xəta qaytar
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
+    // Fayl uzantısına görə növünü müəyyən et (pdf və ya docx)
     const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
     const fileType = ext === 'pdf' ? 'pdf' : 'docx';
 
-    // Extract text from the uploaded file
+    // Fayl adının kodlaşdırmasını düzəlt — xüsusi simvollar düzgün görünsün
+    const originalName = decodeURIComponent(escape(req.file.originalname));
+
+    // Fayldan mətn çıxar — uğursuz olsa upload dayandırılmır
     let extractedText = '';
     try {
       extractedText = await extractTextFromFile(req.file.path, fileType);
     } catch (parseErr) {
       console.error('Text extraction error:', parseErr.message);
-      // Don't fail the upload if text extraction fails
     }
 
-    // Save file record to database
+    // Fayl məlumatlarını verilənlər bazasına yaz
     const file = await File.create({
       user: req.user._id,
-      originalName: Buffer.from(req.file.originalname, 'latin1').toString('utf8'),
+      originalName,
       filename: req.file.filename,
       fileType,
       fileSize: req.file.size,
       filePath: req.file.path,
       extractedText,
-      status: extractedText ? 'completed' : 'uploaded',
+      status: extractedText ? 'completed' : 'uploaded', // Mətn varsa 'completed', yoxsa 'uploaded'
     });
 
-    // Update user's file count
+    // İstifadəçinin yükləmə statistikasını artır
     await req.user.updateOne({ $inc: { 'stats.totalFilesUploaded': 1 } });
 
+    // Uğurlu cavab — həssas məlumatları (filePath, extractedText) göndərmirik
     res.status(201).json({
       message: 'File uploaded successfully!',
       file: {
@@ -109,6 +116,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
   } catch (err) {
     console.error('Upload error:', err);
+    // Multer-in fayl ölçüsü xətasını ayrıca idarə et
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
     }
@@ -116,12 +124,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// ── GET ALL FILES ─────────────────────────────────────────────
+// ── BÜTÜN FAYLLAR ─────────────────────────────────────────────
+// GET /api/files
+// Yalnız bu istifadəçiyə aid faylları gətir, ən yenidən başla
 router.get('/', async (req, res) => {
   try {
     const files = await File.find({ user: req.user._id })
-      .select('-extractedText -filePath') // Don't send large fields
-      .sort({ createdAt: -1 });
+      .select('-extractedText -filePath') // Böyük sahələri göndərmə — lazımsız yük yaradar
+      .sort({ createdAt: -1 });           // Ən son yüklənən əvvəl
 
     res.json({ files });
   } catch (err) {
@@ -129,10 +139,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ── GET ONE FILE ──────────────────────────────────────────────
+// ── TEK FAYL ──────────────────────────────────────────────────
+// GET /api/files/:id
+// ID-yə görə faylı tap — yalnız sahibi görə bilər
 router.get('/:id', async (req, res) => {
   try {
-    const file = await File.findOne({ _id: req.params.id, user: req.user._id });
+    const file = await File.findOne({ _id: req.params.id, user: req.user._id })
+      .select('-extractedText -filePath'); // Həssas məlumatları göndərmə
     if (!file) {
       return res.status(404).json({ error: 'File not found.' });
     }
@@ -142,20 +155,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ── DELETE FILE ───────────────────────────────────────────────
+// ── FAYLI SİL ─────────────────────────────────────────────────
+// DELETE /api/files/:id
+// Həm diskdəki faylı, həm də verilənlər bazası qeydini sil
 router.delete('/:id', async (req, res) => {
   try {
+    // Faylı tap və sahibliyini yoxla
     const file = await File.findOne({ _id: req.params.id, user: req.user._id });
     if (!file) {
       return res.status(404).json({ error: 'File not found.' });
     }
 
-    // Delete physical file from disk
+    // Diskdə fayl varsa sil
     if (fs.existsSync(file.filePath)) {
       fs.unlinkSync(file.filePath);
     }
 
+    // Verilənlər bazasından sil
     await file.deleteOne();
+
+    // İstifadəçinin statistikasını azalt
+    await req.user.updateOne({ $inc: { 'stats.totalFilesUploaded': -1 } });
+
     res.json({ message: 'File deleted successfully.' });
   } catch (err) {
     res.status(500).json({ error: 'Error deleting file.' });
