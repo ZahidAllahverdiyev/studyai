@@ -22,13 +22,14 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/Admin';
 
-// Protected route wrapper: redirects to login if not authenticated
+// Qorunan route — giriş etməyibsə login-ə yönləndir
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
   return user ? children : <Navigate to="/login" replace />;
 }
 
+// Admin route — yalnız admin rolu olan istifadəçilər üçün
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
@@ -41,19 +42,26 @@ function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
+      {/* Admin səhifəsi — yalnız adminlər */}
       <Route path="/admin" element={
-  <AdminRoute>
-    <AdminPage />
-  </AdminRoute>
-} />
+        <AdminRoute>
+          <AdminPage />
+        </AdminRoute>
+      } />
+
+      {/* Açıq səhifələr — giriş etməyən istifadəçilər üçün */}
+      {/* Giriş etmişsə dashboard-a yönləndir */}
+      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
 
+      {/* Şifrə sıfırlama — giriş tələb etmir, PrivateRoute xaricindədir */}
+      <Route path="/forgot-password" element={user ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />
+
+      {/* Qorunan səhifələr — giriş tələb edir */}
       <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/upload" element={<UploadPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/analysis/:fileId" element={<AnalysisPage />} />
         <Route path="/quiz/:fileId" element={<QuizPage />} />
