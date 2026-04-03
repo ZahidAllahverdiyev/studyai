@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
-  // Hard Reset (learning data)
+  // Hard Reset 
   const [resetText, setResetText] = useState("");
   const [resetting, setResetting] = useState(false);
 
