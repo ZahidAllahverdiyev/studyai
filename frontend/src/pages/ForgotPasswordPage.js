@@ -398,9 +398,10 @@ export default function ForgotPasswordPage() {
               </form>
               <div className="fp-footer">
                 Didn't receive it?{' '}
-                <a href="#" onClick={e => { e.preventDefault(); setStep(1); setCode(['','','','','','']); }}>
-                  Try again
-                </a>
+                <button onClick={() => { setStep(1); setCode(['','','','','','']); }}
+  style={{ background:'none', border:'none', color:'#a89dff', fontWeight:600, cursor:'pointer', fontSize:14, padding:0, fontFamily:"'Sora', sans-serif" }}>
+  Try again
+</button>
               </div>
             </>
           )}
