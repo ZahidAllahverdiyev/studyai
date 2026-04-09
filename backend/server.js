@@ -98,5 +98,16 @@ mongoose
 
 mongoose.connection.on('disconnected', () => {
   console.warn('⚠️ MongoDB disconnected. Reconnecting...');
-  mongoose.connect(process.env.MONGODB_URI);
+  setTimeout(() => {
+    mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+  }, 5000);
 });
+
+// MongoDB connection options-u da yenilə
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
