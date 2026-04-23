@@ -101,7 +101,7 @@ router.post('/login-options', async (req, res) => {
       return res.status(400).json({ error: 'Biometrik giris movcud deyil.' });
     }
     const allowCredentials = user.passkeys.map((pk) => ({
-      id: Buffer.from(pk.credentialID, 'base64url'),
+      id: pk.credentialID,
       type: 'public-key',
       transports: pk.transports,
     }));
@@ -136,7 +136,7 @@ router.post('/login-verify', async (req, res) => {
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
       credential: {
-        id: Buffer.from(passkey.credentialID, 'base64url'),
+        id: passkey.credentialID,
         publicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
         counter: passkey.counter,
         transports: passkey.transports,
