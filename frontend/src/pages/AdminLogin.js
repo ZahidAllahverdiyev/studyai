@@ -55,7 +55,7 @@ const AdminLogin = ({ onSuccess }) => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const attResp = await startRegistration({ optionsJSON: optRes.data });
+      const attResp = await startRegistration(optRes.data);
       await axios.post(
         API('/api/webauthn/register-verify'),
         attResp,
