@@ -24,6 +24,7 @@ const aiRoutes = require('./routes/ai');
 const quizRoutes = require('./routes/quiz');
 const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/user');
+const webAuthnRoutes = require('./routes/webauthn');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -71,6 +72,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/webauthn', webAuthnRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'StudyAI API is running!' });
