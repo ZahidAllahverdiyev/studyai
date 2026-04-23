@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken');
 
 const RP_NAME = 'StudyAI Admin';
 const RP_ID = process.env.WEBAUTHN_RP_ID || 'localhost';
-const ORIGIN = process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000';
+const ORIGIN = ['https://stuadyai.one', 'https://www.stuadyai.one'];
 
 const signToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
