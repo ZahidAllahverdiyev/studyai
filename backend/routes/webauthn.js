@@ -42,8 +42,10 @@ router.post('/register-options', protect, async (req, res) => {
         userVerification: 'required',
       },
     });
-    user.webAuthnChallenge = options.challenge;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { webAuthnChallenge: options.challenge } }
+    );
     res.json(options);
   } catch (err) {
     console.error('register-options error:', err);
@@ -76,9 +78,13 @@ router.post('/register-verify', protect, async (req, res) => {
       transports: req.body.response?.transports || [],
       createdAt: new Date(),
     };
-    user.passkeys = [...(user.passkeys || []), newPasskey];
-    user.webAuthnChallenge = undefined;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $push: { passkeys: newPasskey },
+        $unset: { webAuthnChallenge: '' },
+      }
+    );
     res.json({ ok: true });
   } catch (err) {
     console.error('register-verify error:', err);
@@ -104,8 +110,10 @@ router.post('/login-options', async (req, res) => {
       userVerification: 'required',
       allowCredentials,
     });
-    user.webAuthnChallenge = options.challenge;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { webAuthnChallenge: options.challenge } }
+    );
     res.json(options);
   } catch (err) {
     console.error('login-options error:', err);
@@ -136,9 +144,13 @@ router.post('/login-verify', async (req, res) => {
       requireUserVerification: true,
     });
     if (!verification.verified) return res.status(401).json({ error: 'Biometrik dorulama ugursuz.' });
-    passkey.counter = verification.authenticationInfo.newCounter;
-    user.webAuthnChallenge = undefined;
-    await user.save();
+    await User.updateOne(
+      { _id: user._id, 'passkeys.credentialID': passkey.credentialID },
+      {
+        $set: { 'passkeys.$.counter': verification.authenticationInfo.newCounter },
+        $unset: { webAuthnChallenge: '' },
+      }
+    );
     const token = signToken(user._id);
     res.json({
       token,
@@ -154,8 +166,10 @@ router.delete('/passkey/:credentialID', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('+passkeys');
     if (user.role !== 'admin') return res.status(403).json({ error: 'Icaze yoxdur.' });
-    user.passkeys = (user.passkeys || []).filter((pk) => pk.credentialID !== req.params.credentialID);
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      { $pull: { passkeys: { credentialID: req.params.credentialID } } }
+    );
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Silme xetasi.' });
