@@ -71,7 +71,7 @@ const AdminLogin = ({ onSuccess }) => {
         const user = JSON.parse(localStorage.getItem('user'));
         onSuccess(user);
       } else {
-        setError(err.response?.data?.error || 'Qeydiyyat xetasi.');
+        setError(err.message || err.name || 'Qeydiyyat xetasi.');
       }
     } finally {
       setLoading(false);
