@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import axios from 'axios';
 
