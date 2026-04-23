@@ -68,16 +68,16 @@ router.post('/register-verify', protect, async (req, res) => {
     if (!verification.verified || !verification.registrationInfo) {
       return res.status(400).json({ error: 'Dorulama ugursuz.' });
     }
-    const { credential } = verification.registrationInfo;
-    const newPasskey = {
-      credentialID: Buffer.from(credential.id).toString('base64url'),
-      credentialPublicKey: Buffer.from(credential.publicKey).toString('base64'),
-      counter: credential.counter,
-      deviceType: verification.registrationInfo.credentialDeviceType,
-      backedUp: verification.registrationInfo.credentialBackedUp,
-      transports: req.body.response?.transports || [],
-      createdAt: new Date(),
-    };
+    const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+const newPasskey = {
+  credentialID: Buffer.from(credentialID).toString('base64url'),
+  credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+  counter: counter,
+  deviceType: credentialDeviceType,
+  backedUp: credentialBackedUp,
+  transports: req.body.response?.transports || [],
+  createdAt: new Date(),
+};
     await User.updateOne(
       { _id: user._id },
       {
