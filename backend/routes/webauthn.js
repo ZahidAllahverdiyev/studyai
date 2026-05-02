@@ -133,6 +133,7 @@ router.post('/login-verify', async (req, res) => {
   Buffer.from(credentialID, 'base64url').toString('base64url')
 );
     if (!passkey) return res.status(400).json({ error: 'Bu cihaz taninmir.' });
+    console.log('passkey found:', JSON.stringify(passkey));
     const verification = await verifyAuthenticationResponse({
       response: req.body,
       expectedChallenge: user.webAuthnChallenge,
