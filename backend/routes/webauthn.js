@@ -139,12 +139,12 @@ router.post('/login-verify', async (req, res) => {
       expectedChallenge: user.webAuthnChallenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-      credential: {
-       id: passkey.credentialID,
-        publicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
-        counter: passkey.counter,
-        transports: passkey.transports,
-      },
+      authenticator: {
+  credentialID: Buffer.from(passkey.credentialID, 'base64url'),
+  credentialPublicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
+  counter: passkey.counter,
+  transports: passkey.transports,
+},
       requireUserVerification: true,
     });
     if (!verification.verified) return res.status(401).json({ error: 'Biometrik dorulama ugursuz.' });
