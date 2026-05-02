@@ -128,8 +128,10 @@ router.post('/login-verify', async (req, res) => {
     if (!user || user.role !== 'admin') return res.status(401).json({ error: 'Icaze yoxdur.' });
     if (!user.webAuthnChallenge) return res.status(400).json({ error: 'Challenge tapilmadi.' });
     const credentialID = req.body.id;
-    const passkey = user.passkeys.find((pk) => pk.credentialID === credentialID);
-    if (!passkey) return res.status(400).json({ error: 'Bu cihaz taninmir.' });
+console.log('incoming credentialID:', credentialID);
+console.log('stored passkeys:', user.passkeys.map(p => p.credentialID));
+const passkey = user.passkeys.find((pk) => pk.credentialID === credentialID);
+if (!passkey) return res.status(400).json({ error: 'Bu cihaz taninmir.' });
     const verification = await verifyAuthenticationResponse({
       response: req.body,
       expectedChallenge: user.webAuthnChallenge,
