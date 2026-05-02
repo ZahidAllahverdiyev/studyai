@@ -22,7 +22,13 @@ const signToken = (userId) =>
 router.post('/register-options', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('+passkeys');
-    if (user.role !== 'admin') return res.status(403).json({ error: 'Yalniz adminler.' });
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Yalniz adminler.' });
+    }
+    const excludeCredentials = (user.passkeys || []).map((pk) => ({
+      id: pk.credentialID,
+      type: 'public-key',
+    }));
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID: RP_ID,
@@ -30,16 +36,16 @@ router.post('/register-options', protect, async (req, res) => {
       userName: user.email,
       userDisplayName: user.name,
       attestationType: 'none',
-      excludeCredentials: (user.passkeys || []).map((pk) => ({
-        id: pk.credentialID,
-        type: 'public-key',
-      })),
+      excludeCredentials,
       authenticatorSelection: {
         residentKey: 'preferred',
         userVerification: 'required',
       },
     });
-    await User.updateOne({ _id: user._id }, { $set: { webAuthnChallenge: options.challenge } });
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { webAuthnChallenge: options.challenge } }
+    );
     res.json(options);
   } catch (err) {
     console.error('register-options error:', err);
@@ -63,18 +69,21 @@ router.post('/register-verify', protect, async (req, res) => {
       return res.status(400).json({ error: 'Dorulama ugursuz.' });
     }
     const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
-    const newPasskey = {
-      credentialID: Buffer.from(credentialID).toString('base64url'),
-      credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
-      counter,
-      deviceType: credentialDeviceType,
-      backedUp: credentialBackedUp,
-      transports: req.body.response?.transports || [],
-      createdAt: new Date(),
-    };
+const newPasskey = {
+  credentialID: Buffer.from(credentialID).toString('base64url'),
+  credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64'),
+  counter: counter,
+  deviceType: credentialDeviceType,
+  backedUp: credentialBackedUp,
+  transports: req.body.response?.transports || [],
+  createdAt: new Date(),
+};
     await User.updateOne(
       { _id: user._id },
-      { $push: { passkeys: newPasskey }, $unset: { webAuthnChallenge: '' } }
+      {
+        $push: { passkeys: newPasskey },
+        $unset: { webAuthnChallenge: '' },
+      }
     );
     res.json({ ok: true });
   } catch (err) {
@@ -91,16 +100,20 @@ router.post('/login-options', async (req, res) => {
     if (!user || user.role !== 'admin' || !user.passkeys || user.passkeys.length === 0) {
       return res.status(400).json({ error: 'Biometrik giris movcud deyil.' });
     }
+    const allowCredentials = user.passkeys.map((pk) => ({
+      id: Buffer.from(pk.credentialID, 'base64url'),
+      type: 'public-key',
+      transports: pk.transports,
+    }));
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
       userVerification: 'required',
-      allowCredentials: user.passkeys.map((pk) => ({
-        id: pk.credentialID,
-        type: 'public-key',
-        transports: pk.transports,
-      })),
+      allowCredentials,
     });
-    await User.updateOne({ _id: user._id }, { $set: { webAuthnChallenge: options.challenge } });
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { webAuthnChallenge: options.challenge } }
+    );
     res.json(options);
   } catch (err) {
     console.error('login-options error:', err);
@@ -114,7 +127,11 @@ router.post('/login-verify', async (req, res) => {
     const user = await User.findOne({ email, isVerified: true }).select('+passkeys +webAuthnChallenge');
     if (!user || user.role !== 'admin') return res.status(401).json({ error: 'Icaze yoxdur.' });
     if (!user.webAuthnChallenge) return res.status(400).json({ error: 'Challenge tapilmadi.' });
-    const passkey = user.passkeys.find((pk) => pk.credentialID === req.body.id);
+    const credentialID = req.body.id;
+    const passkey = user.passkeys.find((pk) => 
+  Buffer.from(pk.credentialID, 'base64url').toString('base64url') === 
+  Buffer.from(credentialID, 'base64url').toString('base64url')
+);
     if (!passkey) return res.status(400).json({ error: 'Bu cihaz taninmir.' });
     const verification = await verifyAuthenticationResponse({
       response: req.body,
@@ -122,7 +139,7 @@ router.post('/login-verify', async (req, res) => {
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
       credential: {
-        id: passkey.credentialID,
+       id: Buffer.from(passkey.credentialID, 'base64url'),
         publicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
         counter: passkey.counter,
         transports: passkey.transports,
@@ -132,7 +149,10 @@ router.post('/login-verify', async (req, res) => {
     if (!verification.verified) return res.status(401).json({ error: 'Biometrik dorulama ugursuz.' });
     await User.updateOne(
       { _id: user._id, 'passkeys.credentialID': passkey.credentialID },
-      { $set: { 'passkeys.$.counter': verification.authenticationInfo.newCounter }, $unset: { webAuthnChallenge: '' } }
+      {
+        $set: { 'passkeys.$.counter': verification.authenticationInfo.newCounter },
+        $unset: { webAuthnChallenge: '' },
+      }
     );
     const token = signToken(user._id);
     res.json({
@@ -149,7 +169,10 @@ router.delete('/passkey/:credentialID', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('+passkeys');
     if (user.role !== 'admin') return res.status(403).json({ error: 'Icaze yoxdur.' });
-    await User.updateOne({ _id: user._id }, { $pull: { passkeys: { credentialID: req.params.credentialID } } });
+    await User.updateOne(
+      { _id: user._id },
+      { $pull: { passkeys: { credentialID: req.params.credentialID } } }
+    );
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Silme xetasi.' });
@@ -160,14 +183,13 @@ router.get('/passkeys', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('+passkeys');
     if (user.role !== 'admin') return res.status(403).json({ error: 'Icaze yoxdur.' });
-    res.json({
-      passkeys: (user.passkeys || []).map((pk) => ({
-        credentialID: pk.credentialID,
-        deviceType: pk.deviceType,
-        createdAt: pk.createdAt,
-        backedUp: pk.backedUp,
-      })),
-    });
+    const passkeys = (user.passkeys || []).map((pk) => ({
+      credentialID: pk.credentialID,
+      deviceType: pk.deviceType,
+      createdAt: pk.createdAt,
+      backedUp: pk.backedUp,
+    }));
+    res.json({ passkeys });
   } catch (err) {
     res.status(500).json({ error: 'Server xetasi.' });
   }
