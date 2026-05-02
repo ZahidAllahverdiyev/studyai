@@ -84,7 +84,7 @@ const AdminLogin = ({ onSuccess }) => {
     setLoading(true);
     try {
       const optRes = await axios.post(API('/api/webauthn/login-options'), { email });
-      const authResp = await startAuthentication({ optionsJSON: optRes.data });
+      const authResp = await startAuthentication(optRes.data);
       const verifyRes = await axios.post(API('/api/webauthn/login-verify'), { ...authResp, email });
       const { token, user } = verifyRes.data;
       localStorage.setItem('token', token);
