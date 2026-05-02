@@ -139,7 +139,7 @@ router.post('/login-verify', async (req, res) => {
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
       credential: {
-       id: Buffer.from(passkey.credentialID, 'base64url'),
+       id: passkey.credentialID,
         publicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
         counter: passkey.counter,
         transports: passkey.transports,
