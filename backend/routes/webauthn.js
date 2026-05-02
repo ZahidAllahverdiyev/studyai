@@ -101,7 +101,7 @@ router.post('/login-options', async (req, res) => {
       return res.status(400).json({ error: 'Biometrik giris movcud deyil.' });
     }
     const allowCredentials = user.passkeys.map((pk) => ({
-      id: pk.credentialID,
+      id: Buffer.from(pk.credentialID, 'base64url'),
       type: 'public-key',
       transports: pk.transports,
     }));
@@ -128,7 +128,10 @@ router.post('/login-verify', async (req, res) => {
     if (!user || user.role !== 'admin') return res.status(401).json({ error: 'Icaze yoxdur.' });
     if (!user.webAuthnChallenge) return res.status(400).json({ error: 'Challenge tapilmadi.' });
     const credentialID = req.body.id;
-    const passkey = user.passkeys.find((pk) => pk.credentialID === credentialID);
+    const passkey = user.passkeys.find((pk) => 
+  Buffer.from(pk.credentialID, 'base64url').toString('base64url') === 
+  Buffer.from(credentialID, 'base64url').toString('base64url')
+);
     if (!passkey) return res.status(400).json({ error: 'Bu cihaz taninmir.' });
     const verification = await verifyAuthenticationResponse({
       response: req.body,
@@ -136,7 +139,7 @@ router.post('/login-verify', async (req, res) => {
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
       credential: {
-        id: passkey.credentialID,
+       id: Buffer.from(passkey.credentialID, 'base64url'),
         publicKey: Buffer.from(passkey.credentialPublicKey, 'base64'),
         counter: passkey.counter,
         transports: passkey.transports,
